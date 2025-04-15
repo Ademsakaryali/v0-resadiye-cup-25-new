@@ -52,3 +52,38 @@ export type Match = {
   team_heim?: Team
   team_gast?: Team
 }
+
+export type BlankettSettings = {
+  id: string
+  tournament_id: string
+  min_spieler: number
+  max_spieler: number
+  ohne_anmeldung: boolean
+  countdown_aktiv: boolean
+  countdown_datum: string
+  created_at: string
+  updated_at: string
+}
+
+export type BlankettEntry = {
+  id: string
+  team_id: string
+  tournament_id: string
+  status: "entwurf" | "eingereicht" | "genehmigt" | "abgelehnt"
+  eingereicht_am?: string
+  genehmigt_am?: string
+  created_at: string
+  updated_at: string
+  team?: Team
+}
+
+export type BlankettSpieler = {
+  id: string
+  blankett_id: string
+  spieler_id: string
+  trikot_nummer: number
+  position: string
+  created_at: string
+  updated_at: string
+  spieler?: User
+}

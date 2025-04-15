@@ -3,7 +3,7 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { AuthProvider } from "@/context/auth-context"
-import { Header } from "@/components/layout/header"
+import { Sidebar } from "@/components/layout/sidebar"
 import { Footer } from "@/components/layout/footer"
 import { ThemeProvider } from "@/components/theme-provider"
 
@@ -23,12 +23,14 @@ export default function RootLayout({
   return (
     <html lang="de">
       <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           <AuthProvider>
-            <div className="flex flex-col min-h-screen">
-              <Header />
-              <main className="flex-grow">{children}</main>
-              <Footer />
+            <div className="flex min-h-screen">
+              <Sidebar />
+              <div className="flex flex-col flex-1">
+                <main className="flex-grow p-4 md:p-8 pt-16 lg:pt-8">{children}</main>
+                <Footer />
+              </div>
             </div>
           </AuthProvider>
         </ThemeProvider>

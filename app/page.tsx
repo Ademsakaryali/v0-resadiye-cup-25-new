@@ -61,25 +61,6 @@ export default function HomePage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Aktive Turniere</h1>
-        <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-6">
-          <h2 className="text-lg font-semibold text-yellow-800 mb-2">Hinweis zur vereinfachten Authentifizierung</h2>
-          <p className="text-yellow-700">
-            Diese Anwendung verwendet eine vereinfachte Authentifizierung für Demozwecke. Sie können sich mit einer der
-            folgenden E-Mail-Adressen anmelden:
-          </p>
-          <ul className="list-disc pl-5 mt-2 text-yellow-700">
-            <li>admin@example.com (Admin)</li>
-            <li>trainer1@example.com (Trainer)</li>
-            <li>spieler1@example.com (Spieler)</li>
-          </ul>
-          <p className="mt-2 text-yellow-700">
-            Das Passwort wird nicht überprüft. Besuchen Sie die{" "}
-            <a href="/setup" className="underline font-medium">
-              Setup-Seite
-            </a>
-            , um Testdaten zu erstellen.
-          </p>
-        </div>
         {user?.rolle === "Admin" && (
           <Button asChild>
             <Link href="/tournaments/new">Neues Turnier erstellen</Link>

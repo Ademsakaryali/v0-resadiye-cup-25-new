@@ -41,15 +41,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      // Direkte Abfrage der Datenbank nach dem Benutzer
+      // Benutzer anhand der E-Mail-Adresse suchen
       const { data, error } = await supabase.from("users").select("*").eq("email", email).single()
 
       if (error || !data) {
         return { error: { message: "Ungültige E-Mail oder Passwort" } }
       }
 
-      // In einer echten Anwendung würde hier eine Passwortüberprüfung stattfinden
-      // Für diese Demo akzeptieren wir jeden Benutzer mit der richtigen E-Mail
+      // Passwort überprüfen
+      // In einer echten Anwendung würde hier bcrypt.compare verwendet werden
+      // Da wir in diesem Beispiel das Passwort als Klartext speichern, vergleichen wir direkt
+      if (data.password_hash !== password) {
+        return { error: { message: "Ungültige E-Mail oder Passwort" } }
+      }
 
       // Benutzer im localStorage speichern
       localStorage.setItem("currentUser", JSON.stringify(data))

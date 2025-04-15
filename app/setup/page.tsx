@@ -294,6 +294,28 @@ export default function SetupPage() {
 
       if (matchesError) throw matchesError
 
+      // Blankett-Einstellungen erstellen
+      const { error: blankettSettingsError } = await supabase.from("blankett_settings").insert([
+        {
+          tournament_id: tournaments[1].id,
+          min_spieler: 11,
+          max_spieler: 20,
+          ohne_anmeldung: false,
+          countdown_aktiv: true,
+          countdown_datum: "2024-07-13T23:59:59",
+        },
+        {
+          tournament_id: tournaments[2].id,
+          min_spieler: 7,
+          max_spieler: 15,
+          ohne_anmeldung: true,
+          countdown_aktiv: true,
+          countdown_datum: "2024-08-03T23:59:59",
+        },
+      ])
+
+      if (blankettSettingsError) throw blankettSettingsError
+
       setSuccess("Testdaten wurden erfolgreich erstellt!")
     } catch (err: any) {
       console.error("Fehler beim Erstellen der Testdaten:", err)
@@ -337,6 +359,7 @@ export default function SetupPage() {
             <li>2 Teams (FC Adler, SV Löwen)</li>
             <li>3 Turniere (Resadiye Cup 2023, Resadiye Cup 2024, Sommerturnier 2024)</li>
             <li>3 Spiele</li>
+            <li>Blankett-Einstellungen für aktive Turniere</li>
           </ul>
         </CardContent>
         <CardFooter>
