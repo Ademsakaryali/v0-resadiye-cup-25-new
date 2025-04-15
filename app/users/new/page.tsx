@@ -51,26 +51,11 @@ export default function NewUserPage() {
     setIsLoading(true)
 
     try {
-      // Zuerst den Benutzer in der Auth-Tabelle erstellen
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-      })
-
-      if (authError) {
-        throw authError
-      }
-
-      if (!authData.user) {
-        throw new Error("Benutzer konnte nicht erstellt werden")
-      }
-
-      // Dann die Benutzerinformationen in der users-Tabelle speichern
+      // Direkt in die users-Tabelle einfügen
       const { error: userError } = await supabase.from("users").insert([
         {
-          id: authData.user.id,
           email: formData.email,
-          password_hash: "hashed", // Das eigentliche Passwort wird in der Auth-Tabelle gespeichert
+          password_hash: formData.password, // In einer echten Anwendung würde das Passwort gehasht werden
           vorname: formData.vorname,
           nachname: formData.nachname,
           rolle: formData.rolle,

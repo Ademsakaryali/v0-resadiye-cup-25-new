@@ -21,19 +21,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const supabase = getSupabaseClient()
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const checkAuth = async () => {
       try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession()
+        // Überprüfen, ob ein Benutzer im localStorage gespeichert ist
+        const storedUser = localStorage.getItem("currentUser")
 
-        if (session?.user) {
-          // Benutzerinformationen aus der users-Tabelle abrufen
-          const { data, error } = await supabase.from("users").select("*").eq("id", session.user.id).single()
-
-          if (data && !error) {
-            setUser(data as User)
-          }
+        if (storedUser) {
+          setUser(JSON.parse(storedUser))
         }
       } catch (error) {
         console.error("Fehler beim Abrufen des Benutzers:", error)
@@ -42,35 +36,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    fetchUser()
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_IN" && session?.user) {
-        // Benutzerinformationen aus der users-Tabelle abrufen
-        const { data, error } = await supabase.from("users").select("*").eq("id", session.user.id).single()
-
-        if (data && !error) {
-          setUser(data as User)
-        }
-      } else if (event === "SIGNED_OUT") {
-        setUser(null)
-        router.push("/login")
-      }
-    })
-
-    return () => {
-      authListener.subscription.unsubscribe()
-    }
-  }, [supabase, router])
+    checkAuth()
+  }, [])
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
+      // Direkte Abfrage der Datenbank nach dem Benutzer
+      const { data, error } = await supabase.from("users").select("*").eq("email", email).single()
 
-      return { error }
+      if (error || !data) {
+        return { error: { message: "Ungültige E-Mail oder Passwort" } }
+      }
+
+      // In einer echten Anwendung würde hier eine Passwortüberprüfung stattfinden
+      // Für diese Demo akzeptieren wir jeden Benutzer mit der richtigen E-Mail
+
+      // Benutzer im localStorage speichern
+      localStorage.setItem("currentUser", JSON.stringify(data))
+      setUser(data as User)
+
+      return { error: null }
     } catch (error) {
       console.error("Fehler beim Anmelden:", error)
       return { error }
@@ -78,7 +63,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
+    // Benutzer aus dem localStorage entfernen
+    localStorage.removeItem("currentUser")
     setUser(null)
     router.push("/login")
   }

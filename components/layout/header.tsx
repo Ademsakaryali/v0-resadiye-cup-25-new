@@ -13,7 +13,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Menu, X, Trophy, Users, UserCog, LogOut } from "lucide-react"
+// Füge den Import für die Setup-Seite hinzu
+import { Menu, X, Trophy, Users, UserCog, LogOut, Settings } from "lucide-react"
 
 export function Header() {
   const [isOpen, setIsOpen] = useState(false)
@@ -28,7 +29,11 @@ export function Header() {
   ]
 
   // Nur für Admins sichtbar
-  const adminNavigation = [{ name: "Benutzerverwaltung", href: "/users", icon: UserCog }]
+  // Füge die Setup-Seite zum Admin-Menü hinzu
+  const adminNavigation = [
+    { name: "Benutzerverwaltung", href: "/users", icon: UserCog },
+    { name: "Setup", href: "/setup", icon: Settings },
+  ]
 
   const toggleMenu = () => setIsOpen(!isOpen)
   const closeMenu = () => setIsOpen(false)

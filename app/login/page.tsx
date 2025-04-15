@@ -48,6 +48,10 @@ export default function LoginPage() {
           <CardDescription className="text-center">
             Geben Sie Ihre Anmeldedaten ein, um auf die Plattform zuzugreifen
           </CardDescription>
+          <CardDescription className="text-center text-sm bg-yellow-50 p-2 rounded border border-yellow-200">
+            Hinweis: Für die Demo können Sie sich mit jeder E-Mail aus der Datenbank anmelden. Das Passwort wird nicht
+            überprüft.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           {error && (
