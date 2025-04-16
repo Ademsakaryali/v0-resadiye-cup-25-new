@@ -5,39 +5,66 @@ import Link from "next/link"
 import { getSupabaseClient } from "@/lib/supabase/client"
 import type { Tournament } from "@/lib/types"
 import { useAuth } from "@/context/auth-context"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { Calendar, MapPin, Trophy } from "lucide-react"
+import { Calendar, MapPin, Trophy, Users, GamepadIcon } from "lucide-react"
 
 export default function HomePage() {
   const [tournaments, setTournaments] = useState<Tournament[]>([])
+  const [teamCount, setTeamCount] = useState(0)
+  const [spielerCount, setSpielerCount] = useState(0)
+  const [spieleCount, setSpieleCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const { user } = useAuth()
   const supabase = getSupabaseClient()
 
   useEffect(() => {
-    const fetchTournaments = async () => {
+    const fetchData = async () => {
       try {
-        const { data, error } = await supabase
+        // Aktive Turniere abrufen
+        const { data: tournamentData, error: tournamentError } = await supabase
           .from("tournaments")
           .select("*")
           .eq("ist_aktiv", true)
           .order("start_datum", { ascending: true })
+          .limit(3)
 
-        if (error) {
-          throw error
-        }
+        if (tournamentError) throw tournamentError
+        setTournaments(tournamentData as Tournament[])
 
-        setTournaments(data as Tournament[])
+        // Team-Anzahl abrufen
+        const { count: teamCountData, error: teamError } = await supabase
+          .from("teams")
+          .select("*", { count: "exact", head: true })
+
+        if (teamError) throw teamError
+        setTeamCount(teamCountData || 0)
+
+        // Spieler-Anzahl abrufen
+        const { count: spielerCountData, error: spielerError } = await supabase
+          .from("users")
+          .select("*", { count: "exact", head: true })
+          .eq("rolle", "Spieler")
+
+        if (spielerError) throw spielerError
+        setSpielerCount(spielerCountData || 0)
+
+        // Spiele-Anzahl abrufen
+        const { count: spieleCountData, error: spieleError } = await supabase
+          .from("matches")
+          .select("*", { count: "exact", head: true })
+
+        if (spieleError) throw spieleError
+        setSpieleCount(spieleCountData || 0)
       } catch (error) {
-        console.error("Fehler beim Laden der Turniere:", error)
+        console.error("Fehler beim Laden der Daten:", error)
       } finally {
         setLoading(false)
       }
     }
 
-    fetchTournaments()
+    fetchData()
   }, [supabase])
 
   const formatDate = (dateString: string) => {
@@ -58,78 +85,130 @@ export default function HomePage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Aktive Turniere</h1>
-        {user?.rolle === "Admin" && (
-          <Button asChild>
-            <Link href="/tournaments/new">Neues Turnier erstellen</Link>
+    <div className="container mx-auto">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold mb-2">Willkommen beim Resadiye Cup</h1>
+        <p className="text-muted-foreground">
+          Die offizielle Plattform für die Verwaltung von Fußballturnieren des Resadiye Cup.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <Card className="bg-card/50 backdrop-blur-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Turniere</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center">
+              <Trophy className="h-5 w-5 text-primary mr-2" />
+              <span className="text-2xl font-bold">{tournaments.length}</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card/50 backdrop-blur-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Teams</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center">
+              <Users className="h-5 w-5 text-primary mr-2" />
+              <span className="text-2xl font-bold">{teamCount}</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card/50 backdrop-blur-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Spieler</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center">
+              <Users className="h-5 w-5 text-primary mr-2" />
+              <span className="text-2xl font-bold">{spielerCount}</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card/50 backdrop-blur-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Spiele</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center">
+              <GamepadIcon className="h-5 w-5 text-primary mr-2" />
+              <span className="text-2xl font-bold">{spieleCount}</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="mb-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">Aktive Turniere</h2>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/tournaments">Alle anzeigen</Link>
           </Button>
+        </div>
+
+        {tournaments.length === 0 ? (
+          <Card className="bg-card/50 backdrop-blur-sm">
+            <CardContent className="flex flex-col items-center justify-center py-12">
+              <Trophy className="h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium">Keine aktiven Turniere</h3>
+              <p className="text-sm text-muted-foreground mt-1">Derzeit sind keine aktiven Turniere vorhanden.</p>
+              {user?.rolle === "Admin" && (
+                <Button className="mt-4" asChild>
+                  <Link href="/tournaments/new">Neues Turnier erstellen</Link>
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {tournaments.map((tournament) => (
+              <Link href={`/tournaments/${tournament.id}`} key={tournament.id}>
+                <Card className="h-full hover:shadow-md transition-shadow duration-200 bg-card/50 backdrop-blur-sm">
+                  <CardHeader>
+                    <CardTitle>{tournament.name}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="flex items-center text-sm text-muted-foreground">
+                        <Calendar className="mr-2 h-4 w-4" />
+                        <span>
+                          {formatDate(tournament.start_datum)} - {formatDate(tournament.end_datum)}
+                        </span>
+                      </div>
+                      {tournament.ort && (
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <MapPin className="mr-2 h-4 w-4" />
+                          <span>{tournament.ort}</span>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
         )}
       </div>
 
-      {tournaments.length === 0 ? (
-        <div className="text-center py-12">
-          <Trophy className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-lg font-medium text-gray-900">Keine aktiven Turniere</h3>
-          <p className="mt-1 text-sm text-gray-500">Derzeit sind keine aktiven Turniere vorhanden.</p>
-          {user?.rolle === "Admin" && (
-            <div className="mt-6">
-              <Button asChild>
-                <Link href="/tournaments/new">Neues Turnier erstellen</Link>
-              </Button>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {tournaments.map((tournament) => (
-            <Link href={`/tournaments/${tournament.id}`} key={tournament.id}>
-              <Card className="h-full hover:shadow-md transition-shadow duration-200">
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle>{tournament.name}</CardTitle>
-                      <CardDescription className="mt-2">
-                        {tournament.beschreibung || "Keine Beschreibung verfügbar"}
-                      </CardDescription>
-                    </div>
-                    {tournament.logo_url && (
-                      <div className="w-16 h-16 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
-                        <img
-                          src={tournament.logo_url || "/placeholder.svg"}
-                          alt={`${tournament.name} Logo`}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex items-center text-sm text-gray-500">
-                      <Calendar className="mr-2 h-4 w-4" />
-                      <span>
-                        {formatDate(tournament.start_datum)} - {formatDate(tournament.end_datum)}
-                      </span>
-                    </div>
-                    {tournament.ort && (
-                      <div className="flex items-center text-sm text-gray-500">
-                        <MapPin className="mr-2 h-4 w-4" />
-                        <span>{tournament.ort}</span>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button variant="outline" className="w-full">
-                    Details anzeigen
-                  </Button>
-                </CardFooter>
-              </Card>
-            </Link>
-          ))}
-        </div>
+      {!user && (
+        <Card className="bg-card/50 backdrop-blur-sm mt-8">
+          <CardHeader>
+            <CardTitle>Anmelden</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-4 text-muted-foreground">
+              Melden Sie sich an, um auf alle Funktionen der Plattform zugreifen zu können.
+            </p>
+            <Button asChild>
+              <Link href="/login">Zur Anmeldung</Link>
+            </Button>
+          </CardContent>
+        </Card>
       )}
     </div>
   )

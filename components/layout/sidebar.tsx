@@ -6,9 +6,8 @@ import { usePathname } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Sheet, SheetContent } from "@/components/ui/sheet"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Trophy, Users, UserCog, Settings, Menu, LogOut, Home, FileText, ChevronRight, ChevronLeft } from "lucide-react"
+import { Trophy, Users, UserCog, Settings, Home, FileText, User, GamepadIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface SidebarProps {
@@ -17,17 +16,12 @@ interface SidebarProps {
 
 export function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname()
-  const { user, signOut } = useAuth()
-  const [isCollapsed, setIsCollapsed] = useState(false)
+  const { user } = useAuth()
   const [isMobile, setIsMobile] = useState(false)
-  const [isOpen, setIsOpen] = useState(false)
 
   useEffect(() => {
     const checkScreenSize = () => {
       setIsMobile(window.innerWidth < 1024)
-      if (window.innerWidth < 1024) {
-        setIsCollapsed(true)
-      }
     }
 
     checkScreenSize()
@@ -38,140 +32,79 @@ export function Sidebar({ className }: SidebarProps) {
   const isActive = (path: string) => pathname === path || pathname?.startsWith(`${path}/`)
 
   const navigation = [
-    { name: "Dashboard", href: "/", icon: Home },
-    { name: "Turniere", href: "/tournaments", icon: Trophy },
-    { name: "Teams", href: "/teams", icon: Users },
-    { name: "Blanketts", href: "/blanketts", icon: FileText },
+    { name: "Dashboard", href: "/", icon: Home, roles: ["Admin", "Trainer", "Spieler"] },
+    { name: "Teams", href: "/teams", icon: Users, roles: ["Admin", "Trainer", "Spieler"] },
+    { name: "Spieler", href: "/spieler", icon: User, roles: ["Admin", "Trainer", "Spieler"] },
+    { name: "Turniere", href: "/tournaments", icon: Trophy, roles: ["Admin", "Trainer", "Spieler"] },
+    { name: "Spiele", href: "/spiele", icon: GamepadIcon, roles: ["Admin", "Trainer", "Spieler"] },
+    { name: "Blanketts", href: "/blanketts", icon: FileText, roles: ["Admin"] },
+    { name: "Benutzerverwaltung", href: "/users", icon: UserCog, roles: ["Admin"] },
+    { name: "Setup", href: "/setup", icon: Settings, roles: ["Admin"] },
   ]
 
-  // Nur für Admins sichtbar
-  const adminNavigation = [
-    { name: "Benutzerverwaltung", href: "/users", icon: UserCog },
-    { name: "Setup", href: "/setup", icon: Settings },
-  ]
+  // Filtere die Navigation basierend auf der Benutzerrolle
+  const filteredNavigation = navigation.filter((item) => {
+    if (!user) return item.roles.includes("Spieler") // Für nicht angemeldete Benutzer
+    return item.roles.includes(user.rolle)
+  })
 
   const getInitials = () => {
     if (!user) return "G"
     return `${user.vorname.charAt(0)}${user.nachname.charAt(0)}`
   }
 
-  const toggleCollapse = () => {
-    setIsCollapsed(!isCollapsed)
-  }
-
-  const sidebarContent = (
+  return (
     <div
       className={cn(
-        "flex h-full flex-col border-r bg-card/50 backdrop-blur-sm",
-        isCollapsed ? "w-[70px]" : "w-[240px]",
+        "w-64 h-screen flex-shrink-0 fixed left-0 top-0 z-40 bg-card/95 backdrop-blur-sm border-r",
         className,
       )}
     >
-      <div className="flex h-14 items-center border-b px-3 py-4">
-        {!isCollapsed && <h2 className="text-lg font-semibold">Resadiye Cup</h2>}
-        <Button
-          variant="ghost"
-          size="icon"
-          className={cn("ml-auto h-8 w-8", isCollapsed && "mx-auto")}
-          onClick={toggleCollapse}
-        >
-          {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-        </Button>
+      <div className="flex h-16 items-center border-b px-4">
+        <Link href="/" className="flex items-center space-x-2">
+          <img src="/abstract-geometric-logo.png" alt="Logo" className="h-8 w-8" />
+          <span className="text-lg font-semibold">Resadiye Cup</span>
+        </Link>
       </div>
-      <ScrollArea className="flex-1">
+
+      <ScrollArea className="flex-1 h-[calc(100vh-4rem-4rem)]">
         <nav className="flex flex-col gap-1 p-2">
-          {navigation.map((item) => (
+          {filteredNavigation.map((item) => (
             <Button
               key={item.name}
               variant={isActive(item.href) ? "secondary" : "ghost"}
-              className={cn(
-                "justify-start",
-                isCollapsed ? "h-10 w-10 p-0" : "h-10 px-3",
-                isActive(item.href) && "bg-secondary/50",
-              )}
+              className={cn("justify-start h-10 px-3", isActive(item.href) && "bg-secondary/50")}
               asChild
             >
               <Link href={item.href}>
-                <item.icon className={cn("h-5 w-5", isCollapsed ? "mx-auto" : "mr-2")} />
-                {!isCollapsed && <span>{item.name}</span>}
+                <item.icon className="h-5 w-5 mr-3" />
+                <span>{item.name}</span>
               </Link>
             </Button>
           ))}
-
-          {user?.rolle === "Admin" && (
-            <>
-              {!isCollapsed && (
-                <div className="my-2 px-3">
-                  <div className="text-xs font-medium text-muted-foreground">Administration</div>
-                </div>
-              )}
-              {adminNavigation.map((item) => (
-                <Button
-                  key={item.name}
-                  variant={isActive(item.href) ? "secondary" : "ghost"}
-                  className={cn(
-                    "justify-start",
-                    isCollapsed ? "h-10 w-10 p-0" : "h-10 px-3",
-                    isActive(item.href) && "bg-secondary/50",
-                  )}
-                  asChild
-                >
-                  <Link href={item.href}>
-                    <item.icon className={cn("h-5 w-5", isCollapsed ? "mx-auto" : "mr-2")} />
-                    {!isCollapsed && <span>{item.name}</span>}
-                  </Link>
-                </Button>
-              ))}
-            </>
-          )}
         </nav>
       </ScrollArea>
-      {user && (
-        <div className={cn("flex items-center border-t p-3", isCollapsed ? "flex-col gap-2" : "flex-row gap-3")}>
-          <Avatar className="h-8 w-8">
-            <AvatarImage src={user.profilbild_url || ""} alt={user.vorname} />
-            <AvatarFallback>{getInitials()}</AvatarFallback>
-          </Avatar>
-          {!isCollapsed && (
-            <div className="flex flex-1 flex-col overflow-hidden">
-              <div className="truncate text-sm font-medium">{`${user.vorname} ${user.nachname}`}</div>
-              <div className="truncate text-xs text-muted-foreground">{user.email}</div>
+
+      {user ? (
+        <div className="border-t p-4 h-16">
+          <div className="flex items-center">
+            <Avatar className="h-8 w-8 mr-3">
+              <AvatarImage src={user.profilbild_url || ""} alt={user.vorname} />
+              <AvatarFallback>{getInitials()}</AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col">
+              <span className="text-sm font-medium">{`${user.vorname} ${user.nachname}`}</span>
+              <span className="text-xs text-muted-foreground">{user.rolle}</span>
             </div>
-          )}
-          <Button
-            variant="ghost"
-            size="icon"
-            className={cn("h-8 w-8", isCollapsed && "mt-2")}
-            onClick={() => signOut()}
-          >
-            <LogOut className="h-4 w-4" />
+          </div>
+        </div>
+      ) : (
+        <div className="border-t p-4 h-16">
+          <Button asChild variant="outline" className="w-full">
+            <Link href="/login">Anmelden</Link>
           </Button>
         </div>
       )}
     </div>
   )
-
-  // Mobile view uses a sheet
-  if (isMobile) {
-    return (
-      <>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="lg:hidden fixed left-4 top-4 z-40"
-          onClick={() => setIsOpen(true)}
-        >
-          <Menu className="h-6 w-6" />
-        </Button>
-        <Sheet open={isOpen} onOpenChange={setIsOpen}>
-          <SheetContent side="left" className="p-0">
-            {sidebarContent}
-          </SheetContent>
-        </Sheet>
-      </>
-    )
-  }
-
-  // Desktop view
-  return sidebarContent
 }

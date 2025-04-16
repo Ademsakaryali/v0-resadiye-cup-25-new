@@ -4,6 +4,7 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { AuthProvider } from "@/context/auth-context"
 import { Sidebar } from "@/components/layout/sidebar"
+import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
 import { ThemeProvider } from "@/components/theme-provider"
 
@@ -27,8 +28,9 @@ export default function RootLayout({
           <AuthProvider>
             <div className="flex min-h-screen">
               <Sidebar />
-              <div className="flex flex-col flex-1">
-                <main className="flex-grow p-4 md:p-8 pt-16 lg:pt-8">{children}</main>
+              <div className="flex flex-col flex-1 ml-64">
+                <Header />
+                <main className="flex-grow p-6 mt-16">{children}</main>
                 <Footer />
               </div>
             </div>
