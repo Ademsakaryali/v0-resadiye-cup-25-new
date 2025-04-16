@@ -25,7 +25,18 @@ import {
   ThumbsUp,
   Trophy,
   Users,
+  Pencil,
 } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
 
 export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true)
@@ -37,6 +48,7 @@ export default function AdminDashboardPage() {
     blanketts: 0,
   })
   const [pendingBlanketts, setPendingBlanketts] = useState<any[]>([])
+  const [pendingTeamChanges, setPendingTeamChanges] = useState<any[]>([])
   const [recentActivities, setRecentActivities] = useState<any[]>([])
   const [upcomingTournaments, setUpcomingTournaments] = useState<any[]>([])
   const [notificationEnabled, setNotificationEnabled] = useState(false)
@@ -44,6 +56,11 @@ export default function AdminDashboardPage() {
   const [notificationNumber, setNotificationNumber] = useState("")
   const [success, setSuccess] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [showApproveDialog, setShowApproveDialog] = useState(false)
+  const [showRejectDialog, setShowRejectDialog] = useState(false)
+  const [selectedTeamChange, setSelectedTeamChange] = useState<any | null>(null)
+  const [rejectReason, setRejectReason] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const { user } = useAuth()
   const supabase = getSupabaseClient()
 
@@ -95,6 +112,36 @@ export default function AdminDashboardPage() {
           .order("eingereicht_am", { ascending: false })
 
         setPendingBlanketts(pendingBlankettsData || [])
+
+        // Ausstehende Team-Änderungsanfragen abrufen
+        const { data: pendingTeamChangesData } = await supabase
+          .from("team_change_requests")
+          .select(`
+            id,
+            team_id,
+            trainer_id,
+            name,
+            beschreibung,
+            logo_url,
+            status,
+            eingereicht_am,
+            team:team_id (
+              id,
+              name,
+              beschreibung,
+              logo_url
+            ),
+            trainer:trainer_id (
+              id,
+              vorname,
+              nachname,
+              email
+            )
+          `)
+          .eq("status", "eingereicht")
+          .order("eingereicht_am", { ascending: false })
+
+        setPendingTeamChanges(pendingTeamChangesData || [])
 
         // Neueste Aktivitäten abrufen (hier simuliert)
         const now = new Date()
@@ -204,6 +251,83 @@ export default function AdminDashboardPage() {
     } catch (error: any) {
       console.error("Fehler beim Ablehnen des Blanketts:", error)
       setError(error.message || "Fehler beim Ablehnen des Blanketts.")
+    }
+  }
+
+  const handleApproveTeamChange = async () => {
+    if (!selectedTeamChange) return
+
+    try {
+      setIsSubmitting(true)
+
+      // Team aktualisieren
+      const updateData: any = {}
+      if (selectedTeamChange.name) updateData.name = selectedTeamChange.name
+      if (selectedTeamChange.beschreibung) updateData.beschreibung = selectedTeamChange.beschreibung
+      if (selectedTeamChange.logo_url) updateData.logo_url = selectedTeamChange.logo_url
+
+      const { error: teamError } = await supabase.from("teams").update(updateData).eq("id", selectedTeamChange.team_id)
+
+      if (teamError) throw teamError
+
+      // Änderungsanfrage aktualisieren
+      const { error: requestError } = await supabase
+        .from("team_change_requests")
+        .update({
+          status: "genehmigt",
+          genehmigt_am: new Date().toISOString(),
+        })
+        .eq("id", selectedTeamChange.id)
+
+      if (requestError) throw requestError
+
+      // Aktualisiere die Liste der ausstehenden Änderungsanfragen
+      setPendingTeamChanges(pendingTeamChanges.filter((change) => change.id !== selectedTeamChange.id))
+      setSuccess("Teamänderungen erfolgreich genehmigt.")
+      setShowApproveDialog(false)
+      setSelectedTeamChange(null)
+
+      // Erfolgsbenachrichtigung nach 3 Sekunden ausblenden
+      setTimeout(() => setSuccess(null), 3000)
+    } catch (error: any) {
+      console.error("Fehler beim Genehmigen der Teamänderungen:", error)
+      setError(error.message || "Fehler beim Genehmigen der Teamänderungen.")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleRejectTeamChange = async () => {
+    if (!selectedTeamChange) return
+
+    try {
+      setIsSubmitting(true)
+
+      // Änderungsanfrage ablehnen
+      const { error } = await supabase
+        .from("team_change_requests")
+        .update({
+          status: "abgelehnt",
+          genehmigt_am: null,
+        })
+        .eq("id", selectedTeamChange.id)
+
+      if (error) throw error
+
+      // Aktualisiere die Liste der ausstehenden Änderungsanfragen
+      setPendingTeamChanges(pendingTeamChanges.filter((change) => change.id !== selectedTeamChange.id))
+      setSuccess("Teamänderungen erfolgreich abgelehnt.")
+      setShowRejectDialog(false)
+      setSelectedTeamChange(null)
+      setRejectReason("")
+
+      // Erfolgsbenachrichtigung nach 3 Sekunden ausblenden
+      setTimeout(() => setSuccess(null), 3000)
+    } catch (error: any) {
+      console.error("Fehler beim Ablehnen der Teamänderungen:", error)
+      setError(error.message || "Fehler beim Ablehnen der Teamänderungen.")
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -342,10 +466,14 @@ export default function AdminDashboardPage() {
         </div>
 
         <Tabs defaultValue="pending" className="w-full">
-          <TabsList className="w-full grid grid-cols-3 mb-6 bg-secondary/30">
+          <TabsList className="w-full grid grid-cols-4 mb-6 bg-secondary/30">
             <TabsTrigger value="pending" className="flex items-center">
               <FileText className="mr-2 h-4 w-4" />
               Ausstehende Blanketts
+            </TabsTrigger>
+            <TabsTrigger value="team-changes" className="flex items-center">
+              <Pencil className="mr-2 h-4 w-4" />
+              Teamänderungen
             </TabsTrigger>
             <TabsTrigger value="activities" className="flex items-center">
               <Clock className="mr-2 h-4 w-4" />
@@ -446,6 +574,216 @@ export default function AdminDashboardPage() {
                   </Link>
                 </Button>
               </CardFooter>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="team-changes">
+            <Card className="border border-border/50 bg-card/50 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-xl">Ausstehende Teamänderungen</CardTitle>
+                <CardDescription>
+                  Hier können Sie Änderungen an Teams genehmigen oder ablehnen, die von Trainern beantragt wurden.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {pendingTeamChanges.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Pencil className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium">Keine ausstehenden Teamänderungen</h3>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Derzeit gibt es keine Teamänderungen, die auf Genehmigung warten.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {pendingTeamChanges.map((change) => (
+                      <div
+                        key={change.id}
+                        className="p-4 rounded-lg border border-border/50 bg-card/80 hover:bg-card/90 transition-colors"
+                      >
+                        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+                          <div>
+                            <h3 className="font-medium">{change.team?.name}</h3>
+                            <div className="flex items-center mt-1">
+                              <Clock className="h-3 w-3 mr-1 text-muted-foreground" />
+                              <span className="text-xs text-muted-foreground">
+                                Eingereicht am: {formatDateTime(change.eingereicht_am)}
+                              </span>
+                            </div>
+                            {change.trainer && (
+                              <div className="flex items-center mt-2">
+                                <Avatar className="h-6 w-6 mr-2">
+                                  <AvatarFallback>
+                                    {change.trainer.vorname.charAt(0)}
+                                    {change.trainer.nachname.charAt(0)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <span className="text-sm">
+                                  Trainer: {change.trainer.vorname} {change.trainer.nachname}
+                                </span>
+                              </div>
+                            )}
+
+                            <div className="mt-4 space-y-2">
+                              <h4 className="text-sm font-medium">Beantragte Änderungen:</h4>
+                              <div className="space-y-2 text-sm">
+                                {change.name && (
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div className="p-2 rounded-md bg-secondary/20">
+                                      <span className="text-muted-foreground">Aktueller Name:</span> {change.team.name}
+                                    </div>
+                                    <div className="p-2 rounded-md bg-green-900/20">
+                                      <span className="text-muted-foreground">Neuer Name:</span> {change.name}
+                                    </div>
+                                  </div>
+                                )}
+                                {change.beschreibung && (
+                                  <div className="grid grid-cols-1 gap-2">
+                                    <div className="p-2 rounded-md bg-secondary/20">
+                                      <span className="text-muted-foreground">Aktuelle Beschreibung:</span>{" "}
+                                      {change.team.beschreibung || "Keine Beschreibung"}
+                                    </div>
+                                    <div className="p-2 rounded-md bg-green-900/20">
+                                      <span className="text-muted-foreground">Neue Beschreibung:</span>{" "}
+                                      {change.beschreibung}
+                                    </div>
+                                  </div>
+                                )}
+                                {change.logo_url && (
+                                  <div className="grid grid-cols-1 gap-2">
+                                    <div className="p-2 rounded-md bg-secondary/20">
+                                      <span className="text-muted-foreground">Aktuelle Logo-URL:</span>{" "}
+                                      {change.team.logo_url || "Kein Logo"}
+                                    </div>
+                                    <div className="p-2 rounded-md bg-green-900/20">
+                                      <span className="text-muted-foreground">Neue Logo-URL:</span> {change.logo_url}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Dialog
+                              open={showRejectDialog && selectedTeamChange?.id === change.id}
+                              onOpenChange={(open) => {
+                                if (!open) {
+                                  setSelectedTeamChange(null)
+                                  setShowRejectDialog(false)
+                                }
+                              }}
+                            >
+                              <DialogTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/20"
+                                  onClick={() => {
+                                    setSelectedTeamChange(change)
+                                    setShowRejectDialog(true)
+                                  }}
+                                >
+                                  <ThumbsDown className="mr-2 h-4 w-4" />
+                                  Ablehnen
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="bg-card border border-border/50 backdrop-blur-sm">
+                                <DialogHeader>
+                                  <DialogTitle>Teamänderungen ablehnen</DialogTitle>
+                                  <DialogDescription>
+                                    Sind Sie sicher, dass Sie die Änderungen ablehnen möchten? Der Trainer wird über die
+                                    Ablehnung informiert.
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-4 py-4">
+                                  <div className="space-y-2">
+                                    <label className="text-sm font-medium">Grund für die Ablehnung (optional)</label>
+                                    <Textarea
+                                      value={rejectReason}
+                                      onChange={(e) => setRejectReason(e.target.value)}
+                                      placeholder="Geben Sie einen Grund für die Ablehnung an..."
+                                      className="bg-background/50"
+                                    />
+                                  </div>
+                                </div>
+                                <DialogFooter>
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                      setSelectedTeamChange(null)
+                                      setShowRejectDialog(false)
+                                    }}
+                                  >
+                                    Abbrechen
+                                  </Button>
+                                  <Button
+                                    variant="destructive"
+                                    onClick={handleRejectTeamChange}
+                                    disabled={isSubmitting}
+                                  >
+                                    {isSubmitting ? "Wird abgelehnt..." : "Änderungen ablehnen"}
+                                  </Button>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
+
+                            <Dialog
+                              open={showApproveDialog && selectedTeamChange?.id === change.id}
+                              onOpenChange={(open) => {
+                                if (!open) {
+                                  setSelectedTeamChange(null)
+                                  setShowApproveDialog(false)
+                                }
+                              }}
+                            >
+                              <DialogTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  className="bg-green-600 hover:bg-green-700"
+                                  onClick={() => {
+                                    setSelectedTeamChange(change)
+                                    setShowApproveDialog(true)
+                                  }}
+                                >
+                                  <ThumbsUp className="mr-2 h-4 w-4" />
+                                  Genehmigen
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="bg-card border border-border/50 backdrop-blur-sm">
+                                <DialogHeader>
+                                  <DialogTitle>Teamänderungen genehmigen</DialogTitle>
+                                  <DialogDescription>
+                                    Sind Sie sicher, dass Sie die Änderungen genehmigen möchten? Die Änderungen werden
+                                    sofort wirksam.
+                                  </DialogDescription>
+                                </DialogHeader>
+                                <DialogFooter>
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                      setSelectedTeamChange(null)
+                                      setShowApproveDialog(false)
+                                    }}
+                                  >
+                                    Abbrechen
+                                  </Button>
+                                  <Button
+                                    className="bg-green-600 hover:bg-green-700"
+                                    onClick={handleApproveTeamChange}
+                                    disabled={isSubmitting}
+                                  >
+                                    {isSubmitting ? "Wird genehmigt..." : "Änderungen genehmigen"}
+                                  </Button>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
             </Card>
           </TabsContent>
 
@@ -588,6 +926,18 @@ export default function AdminDashboardPage() {
                             />
                             <label htmlFor="notify-blankett-submitted" className="text-sm">
                               Neue Blankett-Einreichungen
+                            </label>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              id="notify-team-changes"
+                              checked={true}
+                              disabled
+                              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                            />
+                            <label htmlFor="notify-team-changes" className="text-sm">
+                              Neue Teamänderungsanfragen
                             </label>
                           </div>
                         </div>

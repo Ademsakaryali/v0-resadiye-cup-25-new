@@ -20,6 +20,7 @@ import {
   User,
   ChevronLeft,
   ChevronRight,
+  Shield,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -29,7 +30,7 @@ interface SidebarProps {
 
 export function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname()
-  const { user, signOut } = useAuth()
+  const { user, trainerTeam, signOut } = useAuth()
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
@@ -46,7 +47,8 @@ export function Sidebar({ className }: SidebarProps) {
 
   const isActive = (path: string) => pathname === path || pathname?.startsWith(`${path}/`)
 
-  const navigation = [
+  // Basis-Navigation
+  let navigation = [
     { name: "Hauptseite", href: "/", icon: Home, roles: ["Admin", "Trainer", "Spieler"] },
     { name: "Teams", href: "/teams", icon: Users, roles: ["Admin", "Trainer", "Spieler"] },
     { name: "Spieler", href: "/spieler", icon: User, roles: ["Admin", "Trainer", "Spieler"] },
@@ -56,6 +58,15 @@ export function Sidebar({ className }: SidebarProps) {
     { name: "Setup", href: "/setup", icon: Settings, roles: ["Admin"] },
     { name: "Dashboard", href: "/admin/dashboard", icon: Settings, roles: ["Admin"] },
   ]
+
+  // Füge "Mein Team" für Trainer hinzu, wenn sie ein Team haben
+  if (user?.rolle === "Trainer" && trainerTeam) {
+    navigation = [
+      ...navigation.slice(0, 1), // Hauptseite
+      { name: "Mein Team", href: `/teams/${trainerTeam.id}`, icon: Shield, roles: ["Trainer"] },
+      ...navigation.slice(1), // Rest der Navigation
+    ]
+  }
 
   // Filtere die Navigation basierend auf der Benutzerrolle
   const filteredNavigation = navigation.filter((item) => {

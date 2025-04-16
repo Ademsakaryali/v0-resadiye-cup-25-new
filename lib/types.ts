@@ -87,3 +87,19 @@ export type BlankettSpieler = {
   updated_at: string
   spieler?: User
 }
+
+export type TeamChangeRequest = {
+  id: string
+  team_id: string
+  trainer_id: string
+  name?: string
+  beschreibung?: string
+  logo_url?: string
+  status: "eingereicht" | "genehmigt" | "abgelehnt"
+  eingereicht_am: string
+  genehmigt_am?: string
+  created_at: string
+  updated_at: string
+  team?: Team
+  trainer?: User
+}

@@ -6,11 +6,14 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { User } from "lucide-react"
+import { useAuth } from "@/context/auth-context"
+import Link from "next/link"
 
 export default function SpielerPage() {
   const [loading, setLoading] = useState(true)
   const [spieler, setSpieler] = useState<any[]>([])
   const supabase = getSupabaseClient()
+  const { user } = useAuth()
 
   useEffect(() => {
     const fetchSpieler = async () => {
@@ -48,7 +51,12 @@ export default function SpielerPage() {
     <div className="container mx-auto">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Spieler Übersicht</h1>
-        <Button>Neuer Spieler</Button>
+        {/* Nur Admins und Trainer können neue Spieler erstellen */}
+        {user && (user.rolle === "Admin" || user.rolle === "Trainer") && (
+          <Button asChild>
+            <Link href="/spieler/new">Neuer Spieler</Link>
+          </Button>
+        )}
       </div>
 
       {spieler.length === 0 ? (
@@ -57,7 +65,11 @@ export default function SpielerPage() {
             <User className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium">Keine Spieler gefunden</h3>
             <p className="text-sm text-muted-foreground mt-1">Es wurden noch keine Spieler angelegt.</p>
-            <Button className="mt-4">Ersten Spieler erstellen</Button>
+            {user && (user.rolle === "Admin" || user.rolle === "Trainer") && (
+              <Button className="mt-4" asChild>
+                <Link href="/spieler/new">Ersten Spieler erstellen</Link>
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (

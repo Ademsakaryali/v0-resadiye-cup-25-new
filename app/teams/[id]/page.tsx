@@ -222,6 +222,10 @@ export default function TeamDetailsPage() {
     return false
   }
 
+  const isTeamTrainer = () => {
+    return user?.rolle === "Trainer" && team?.trainer_id === user.id
+  }
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[calc(100vh-8rem)]">
@@ -274,6 +278,15 @@ export default function TeamDetailsPage() {
           {user?.rolle === "Admin" && (
             <Button asChild>
               <Link href={`/teams/${team.id}/edit`}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Team bearbeiten
+              </Link>
+            </Button>
+          )}
+
+          {isTeamTrainer() && (
+            <Button asChild>
+              <Link href={`/teams/${team.id}/trainer-edit`}>
                 <Pencil className="mr-2 h-4 w-4" />
                 Team bearbeiten
               </Link>
