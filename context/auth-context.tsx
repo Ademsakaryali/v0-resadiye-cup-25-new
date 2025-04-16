@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation"
 type AuthContextType = {
   user: User | null
   loading: boolean
-  signIn: (email: string, password: string) => Promise<{ error: any }>
+  signIn: (email: string, password: string, rememberMe?: boolean) => Promise<{ error: any }>
   signOut: () => Promise<void>
 }
 
@@ -25,9 +25,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         // Überprüfen, ob ein Benutzer im localStorage gespeichert ist
         const storedUser = localStorage.getItem("currentUser")
+        const rememberMe = localStorage.getItem("rememberMe") === "true"
 
-        if (storedUser) {
+        if (storedUser && rememberMe) {
           setUser(JSON.parse(storedUser))
+        } else if (storedUser && !rememberMe) {
+          // Wenn "Angemeldet bleiben" nicht aktiviert war, entfernen wir den Benutzer
+          localStorage.removeItem("currentUser")
+          localStorage.removeItem("rememberMe")
         }
       } catch (error) {
         console.error("Fehler beim Abrufen des Benutzers:", error)
@@ -39,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth()
   }, [])
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string, rememberMe = false) => {
     try {
       // Benutzer anhand der E-Mail-Adresse suchen
       const { data, error } = await supabase.from("users").select("*").eq("email", email).single()
@@ -57,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Benutzer im localStorage speichern
       localStorage.setItem("currentUser", JSON.stringify(data))
+      localStorage.setItem("rememberMe", rememberMe.toString())
       setUser(data as User)
 
       return { error: null }
@@ -69,6 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     // Benutzer aus dem localStorage entfernen
     localStorage.removeItem("currentUser")
+    localStorage.removeItem("rememberMe")
     setUser(null)
     router.push("/login")
   }

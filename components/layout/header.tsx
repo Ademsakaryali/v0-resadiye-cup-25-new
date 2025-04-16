@@ -20,14 +20,14 @@ export function Header() {
 
   // Funktion, um den aktuellen Seitentitel zu ermitteln
   const getPageTitle = () => {
-    if (pathname === "/") return "Dashboard"
+    if (pathname === "/") return "Hauptseite"
     if (pathname.startsWith("/teams")) return "Teams"
     if (pathname.startsWith("/tournaments")) return "Turniere"
     if (pathname.startsWith("/blanketts")) return "Blanketts"
     if (pathname.startsWith("/users")) return "Benutzerverwaltung"
     if (pathname.startsWith("/setup")) return "Setup"
     if (pathname.startsWith("/spieler")) return "Spieler"
-    if (pathname.startsWith("/spiele")) return "Spiele"
+    if (pathname.startsWith("/admin/dashboard")) return "Admin Dashboard"
     return "Resadiye Cup"
   }
 
@@ -50,8 +50,8 @@ export function Header() {
   }
 
   return (
-    <header className="h-16 border-b bg-card/95 backdrop-blur-sm fixed top-0 left-64 right-0 z-30">
-      <div className="flex h-full items-center justify-between px-6">
+    <header className="h-16 border-b bg-card/95 backdrop-blur-sm fixed top-0 left-0 right-0 z-30 lg:left-64 lg:w-[calc(100%-16rem)] transition-all duration-300">
+      <div className="flex h-full items-center justify-between px-6 lg:px-6">
         <div className="flex items-center">
           {isSubPage() && (
             <Button variant="ghost" size="icon" asChild className="mr-2">
@@ -60,13 +60,15 @@ export function Header() {
               </Link>
             </Button>
           )}
-          <h1 className="text-xl font-semibold">{getPageTitle()}</h1>
+          <h1 className="text-xl font-semibold ml-8 lg:ml-0">{getPageTitle()}</h1>
         </div>
 
         <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="icon">
-            <Bell className="h-5 w-5" />
-          </Button>
+          {user && (
+            <Button variant="ghost" size="icon">
+              <Bell className="h-5 w-5" />
+            </Button>
+          )}
 
           {user ? (
             <DropdownMenu>

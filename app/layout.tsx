@@ -27,8 +27,8 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           <AuthProvider>
             <div className="flex min-h-screen">
-              <Sidebar />
-              <div className="flex flex-col flex-1 ml-64">
+              <Sidebar className="hidden lg:flex" />
+              <div className="flex flex-col flex-1 lg:ml-64">
                 <Header />
                 <main className="flex-grow p-6 mt-16">{children}</main>
                 <Footer />

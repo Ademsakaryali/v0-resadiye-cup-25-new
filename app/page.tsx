@@ -86,58 +86,51 @@ export default function HomePage() {
 
   return (
     <div className="container mx-auto">
-      <div className="mb-8">
+      <div className="mb-6">
         <h1 className="text-2xl font-bold mb-2">Willkommen beim Resadiye Cup</h1>
         <p className="text-muted-foreground">
           Die offizielle Plattform für die Verwaltung von Fußballturnieren des Resadiye Cup.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      {/* Info-Cards - kleiner im mobilen Modus */}
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6">
         <Card className="bg-card/50 backdrop-blur-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Turniere</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              <Trophy className="h-5 w-5 text-primary mr-2" />
-              <span className="text-2xl font-bold">{tournaments.length}</span>
+          <CardContent className="p-3 md:p-6 flex items-center">
+            <Trophy className="h-4 w-4 md:h-5 md:w-5 text-primary mr-2" />
+            <div>
+              <p className="text-xs md:text-sm font-medium text-muted-foreground">Turniere</p>
+              <p className="text-lg md:text-2xl font-bold">{tournaments.length}</p>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-card/50 backdrop-blur-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Teams</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              <Users className="h-5 w-5 text-primary mr-2" />
-              <span className="text-2xl font-bold">{teamCount}</span>
+          <CardContent className="p-3 md:p-6 flex items-center">
+            <Users className="h-4 w-4 md:h-5 md:w-5 text-primary mr-2" />
+            <div>
+              <p className="text-xs md:text-sm font-medium text-muted-foreground">Teams</p>
+              <p className="text-lg md:text-2xl font-bold">{teamCount}</p>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-card/50 backdrop-blur-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Spieler</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              <Users className="h-5 w-5 text-primary mr-2" />
-              <span className="text-2xl font-bold">{spielerCount}</span>
+          <CardContent className="p-3 md:p-6 flex items-center">
+            <Users className="h-4 w-4 md:h-5 md:w-5 text-primary mr-2" />
+            <div>
+              <p className="text-xs md:text-sm font-medium text-muted-foreground">Spieler</p>
+              <p className="text-lg md:text-2xl font-bold">{spielerCount}</p>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-card/50 backdrop-blur-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Spiele</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center">
-              <GamepadIcon className="h-5 w-5 text-primary mr-2" />
-              <span className="text-2xl font-bold">{spieleCount}</span>
+          <CardContent className="p-3 md:p-6 flex items-center">
+            <GamepadIcon className="h-4 w-4 md:h-5 md:w-5 text-primary mr-2" />
+            <div>
+              <p className="text-xs md:text-sm font-medium text-muted-foreground">Spiele</p>
+              <p className="text-lg md:text-2xl font-bold">{spieleCount}</p>
             </div>
           </CardContent>
         </Card>

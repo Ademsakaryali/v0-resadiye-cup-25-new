@@ -296,6 +296,23 @@ export default function BlankettDetailPage() {
 
       if (error) throw error
 
+      // Benachrichtigung senden
+      try {
+        await fetch("/api/notifications/webhook", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            type: "blankett_submitted",
+            blankett_id: blankett.id,
+          }),
+        })
+      } catch (notificationError) {
+        console.error("Fehler beim Senden der Benachrichtigung:", notificationError)
+        // Wir werfen hier keinen Fehler, da die Benachrichtigung optional ist
+      }
+
       // Blankett aktualisieren
       setBlankett({
         ...blankett,
