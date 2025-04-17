@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { getSupabaseClient } from "@/lib/supabase/client"
@@ -15,13 +15,14 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Checkbox } from "@/components/ui/checkbox"
 import { AlertCircle, ArrowLeft } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { ProfileImageUpload } from "@/components/users/profile-image-upload"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import type { User } from "@/lib/types"
 
-export default function NewUserPage() {
-  const [formData, setFormData] = useState({
+export default function EditUserPage({ params }: { params: { id: string } }) {
+  const [formData, setFormData] = useState<Partial<User>>({
     email: "",
-    password: "",
     vorname: "",
     nachname: "",
     rolle: "",
@@ -30,10 +31,40 @@ export default function NewUserPage() {
     profilbild_url: "",
     ist_aktiv: true,
   })
+  const [originalData, setOriginalData] = useState<Partial<User>>({})
   const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
+  const [changePassword, setChangePassword] = useState(false)
+  const [newPassword, setNewPassword] = useState("")
   const router = useRouter()
   const supabase = getSupabaseClient()
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const { data, error } = await supabase.from("users").select("*").eq("id", params.id).single()
+
+        if (error) {
+          throw error
+        }
+
+        if (!data) {
+          throw new Error("Benutzer nicht gefunden")
+        }
+
+        setFormData(data)
+        setOriginalData(data)
+      } catch (error: any) {
+        console.error("Fehler beim Laden des Benutzers:", error)
+        setError(error.message || "Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchUser()
+  }, [params.id, supabase])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -55,35 +86,45 @@ export default function NewUserPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
-    setIsLoading(true)
+    setIsSaving(true)
 
     try {
-      // Direkt in die users-Tabelle einfügen
-      const { error: userError } = await supabase.from("users").insert([
-        {
-          email: formData.email,
-          password_hash: formData.password, // In einer echten Anwendung würde das Passwort gehasht werden
-          vorname: formData.vorname,
-          nachname: formData.nachname,
-          rolle: formData.rolle,
-          geburtsdatum: formData.geburtsdatum || null,
-          telefonnummer: formData.telefonnummer || null,
-          profilbild_url: formData.profilbild_url || null,
-          ist_aktiv: formData.ist_aktiv,
-        },
-      ])
+      const updateData: any = {
+        email: formData.email,
+        vorname: formData.vorname,
+        nachname: formData.nachname,
+        rolle: formData.rolle,
+        geburtsdatum: formData.geburtsdatum || null,
+        telefonnummer: formData.telefonnummer || null,
+        profilbild_url: formData.profilbild_url || null,
+        ist_aktiv: formData.ist_aktiv,
+      }
 
-      if (userError) {
-        throw userError
+      if (changePassword && newPassword) {
+        updateData.password_hash = newPassword // In einer echten Anwendung würde das Passwort gehasht werden
+      }
+
+      const { error: updateError } = await supabase.from("users").update(updateData).eq("id", params.id)
+
+      if (updateError) {
+        throw updateError
       }
 
       router.push("/users")
     } catch (err: any) {
-      console.error("Fehler beim Erstellen des Benutzers:", err)
+      console.error("Fehler beim Aktualisieren des Benutzers:", err)
       setError(err.message || "Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.")
     } finally {
-      setIsLoading(false)
+      setIsSaving(false)
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-[calc(100vh-8rem)]">
+        <LoadingSpinner />
+      </div>
+    )
   }
 
   return (
@@ -96,13 +137,16 @@ export default function NewUserPage() {
               Zurück zur Benutzerliste
             </Link>
           </Button>
-          <h1 className="text-3xl font-bold">Neuen Benutzer anlegen</h1>
+          <h1 className="text-3xl font-bold">Benutzer bearbeiten</h1>
+          <p className="text-muted-foreground mt-1">
+            {formData.vorname} {formData.nachname}
+          </p>
         </div>
 
         <Card>
           <CardHeader>
             <CardTitle>Benutzerinformationen</CardTitle>
-            <CardDescription>Geben Sie die Informationen für den neuen Benutzer ein.</CardDescription>
+            <CardDescription>Bearbeiten Sie die Informationen des Benutzers.</CardDescription>
           </CardHeader>
           <CardContent>
             {error && (
@@ -121,11 +165,23 @@ export default function NewUserPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                       <Label htmlFor="vorname">Vorname *</Label>
-                      <Input id="vorname" name="vorname" value={formData.vorname} onChange={handleChange} required />
+                      <Input
+                        id="vorname"
+                        name="vorname"
+                        value={formData.vorname || ""}
+                        onChange={handleChange}
+                        required
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="nachname">Nachname *</Label>
-                      <Input id="nachname" name="nachname" value={formData.nachname} onChange={handleChange} required />
+                      <Input
+                        id="nachname"
+                        name="nachname"
+                        value={formData.nachname || ""}
+                        onChange={handleChange}
+                        required
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="email">E-Mail *</Label>
@@ -133,18 +189,7 @@ export default function NewUserPage() {
                         id="email"
                         name="email"
                         type="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="password">Passwort *</Label>
-                      <Input
-                        id="password"
-                        name="password"
-                        type="password"
-                        value={formData.password}
+                        value={formData.email || ""}
                         onChange={handleChange}
                         required
                       />
@@ -152,7 +197,7 @@ export default function NewUserPage() {
                     <div className="space-y-2">
                       <Label htmlFor="rolle">Rolle *</Label>
                       <Select
-                        value={formData.rolle}
+                        value={formData.rolle || ""}
                         onValueChange={(value) => handleSelectChange("rolle", value)}
                         required
                       >
@@ -166,7 +211,29 @@ export default function NewUserPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="flex items-center space-x-2 pt-6">
+                    <div className="space-y-2 md:col-span-2">
+                      <div className="flex items-center space-x-2 mb-4">
+                        <Checkbox
+                          id="change_password"
+                          checked={changePassword}
+                          onCheckedChange={(checked) => setChangePassword(checked as boolean)}
+                        />
+                        <Label htmlFor="change_password">Passwort ändern</Label>
+                      </div>
+                      {changePassword && (
+                        <div className="space-y-2">
+                          <Label htmlFor="new_password">Neues Passwort</Label>
+                          <Input
+                            id="new_password"
+                            type="password"
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            required={changePassword}
+                          />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-2 pt-2">
                       <Checkbox
                         id="ist_aktiv"
                         checked={formData.ist_aktiv}
@@ -180,7 +247,7 @@ export default function NewUserPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2 md:col-span-2">
                       <ProfileImageUpload
-                        initialImageUrl={formData.profilbild_url}
+                        initialImageUrl={formData.profilbild_url || ""}
                         onImageUpload={handleImageUpload}
                         className="mb-4"
                       />
@@ -191,7 +258,7 @@ export default function NewUserPage() {
                         id="geburtsdatum"
                         name="geburtsdatum"
                         type="date"
-                        value={formData.geburtsdatum}
+                        value={formData.geburtsdatum || ""}
                         onChange={handleChange}
                       />
                     </div>
@@ -200,7 +267,7 @@ export default function NewUserPage() {
                       <Input
                         id="telefonnummer"
                         name="telefonnummer"
-                        value={formData.telefonnummer}
+                        value={formData.telefonnummer || ""}
                         onChange={handleChange}
                       />
                     </div>
@@ -208,8 +275,11 @@ export default function NewUserPage() {
                 </TabsContent>
               </Tabs>
               <CardFooter className="px-0 pt-6">
-                <Button type="submit" disabled={isLoading} className="ml-auto">
-                  {isLoading ? "Wird erstellt..." : "Benutzer erstellen"}
+                <Button variant="outline" asChild className="mr-auto">
+                  <Link href="/users">Abbrechen</Link>
+                </Button>
+                <Button type="submit" disabled={isSaving}>
+                  {isSaving ? "Wird gespeichert..." : "Änderungen speichern"}
                 </Button>
               </CardFooter>
             </form>

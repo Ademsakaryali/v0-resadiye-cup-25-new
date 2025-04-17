@@ -33,7 +33,9 @@ import {
   AlertCircle,
   Calendar,
   MapPin,
+  AlertTriangle,
 } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
 
 export default function TournamentsPage() {
   const [tournaments, setTournaments] = useState<Tournament[]>([])
@@ -45,9 +47,20 @@ export default function TournamentsPage() {
   )
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [tournamentToDelete, setTournamentToDelete] = useState<Tournament | null>(null)
+  const [forceDelete, setForceDelete] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const { user } = useAuth()
   const supabase = getSupabaseClient()
   const [error, setError] = useState<string | null>(null)
+  const [dependencies, setDependencies] = useState<{
+    hasMatches: boolean
+    hasBlanketts: boolean
+    hasTeams: boolean
+  }>({
+    hasMatches: false,
+    hasBlanketts: false,
+    hasTeams: false,
+  })
 
   useEffect(() => {
     const fetchTournaments = async () => {
@@ -109,62 +122,89 @@ export default function TournamentsPage() {
     setFilteredTournaments(result)
   }, [tournaments, searchQuery, sortOrder])
 
-  const handleDeleteClick = (tournament: Tournament) => {
+  const handleDeleteClick = async (tournament: Tournament) => {
     setTournamentToDelete(tournament)
+    setForceDelete(false)
+    setError(null)
+    setIsDeleting(false)
+
+    // Prüfen auf Abhängigkeiten
+    try {
+      const [matchesResponse, blankettsResponse, teamsResponse] = await Promise.all([
+        supabase.from("matches").select("*").eq("tournament_id", tournament.id).limit(1),
+        supabase.from("blankett_entries").select("*").eq("tournament_id", tournament.id).limit(1),
+        supabase.from("tournament_teams").select("*").eq("tournament_id", tournament.id).limit(1),
+      ])
+
+      setDependencies({
+        hasMatches: matchesResponse.data && matchesResponse.data.length > 0,
+        hasBlanketts: blankettsResponse.data && blankettsResponse.data.length > 0,
+        hasTeams: teamsResponse.data && teamsResponse.data.length > 0,
+      })
+    } catch (error) {
+      console.error("Fehler beim Prüfen der Abhängigkeiten:", error)
+    }
+
     setDeleteDialogOpen(true)
-    setError(null) // Clear any previous errors
   }
 
   const handleDeleteConfirm = async () => {
     if (!tournamentToDelete) return
 
+    setIsDeleting(true)
+    setError(null)
+
     try {
-      // Prüfen, ob das Turnier Spiele hat
-      const { data: matchesData, error: matchesError } = await supabase
-        .from("matches")
-        .select("id")
-        .eq("tournament_id", tournamentToDelete.id)
-        .limit(1)
+      if (forceDelete) {
+        // Kaskadierendes Löschen aller abhängigen Daten
+        const tournamentId = tournamentToDelete.id
 
-      if (matchesError) throw matchesError
+        // Löschen in der richtigen Reihenfolge, um Fremdschlüsseleinschränkungen zu respektieren
+        if (dependencies.hasMatches) {
+          const { error: matchesError } = await supabase.from("matches").delete().eq("tournament_id", tournamentId)
 
-      if (matchesData && matchesData.length > 0) {
-        throw new Error(
-          "Dieses Turnier kann nicht gelöscht werden, da es Spiele enthält. Bitte löschen Sie zuerst alle Spiele dieses Turniers.",
-        )
+          if (matchesError) throw matchesError
+        }
+
+        if (dependencies.hasBlanketts) {
+          const { error: blankettsError } = await supabase
+            .from("blankett_entries")
+            .delete()
+            .eq("tournament_id", tournamentId)
+
+          if (blankettsError) throw blankettsError
+        }
+
+        if (dependencies.hasTeams) {
+          const { error: teamsError } = await supabase
+            .from("tournament_teams")
+            .delete()
+            .eq("tournament_id", tournamentId)
+
+          if (teamsError) throw teamsError
+        }
+      } else {
+        // Prüfen, ob das Turnier Abhängigkeiten hat
+        if (dependencies.hasMatches) {
+          throw new Error(
+            "Dieses Turnier kann nicht gelöscht werden, da es Spiele enthält. Aktivieren Sie die Option zum vollständigen Löschen, um das Turnier und alle zugehörigen Daten zu löschen.",
+          )
+        }
+
+        if (dependencies.hasBlanketts) {
+          throw new Error(
+            "Dieses Turnier kann nicht gelöscht werden, da es Blanketts enthält. Aktivieren Sie die Option zum vollständigen Löschen, um das Turnier und alle zugehörigen Daten zu löschen.",
+          )
+        }
+
+        if (dependencies.hasTeams) {
+          throw new Error(
+            "Dieses Turnier kann nicht gelöscht werden, da ihm Teams zugeordnet sind. Aktivieren Sie die Option zum vollständigen Löschen, um das Turnier und alle zugehörigen Daten zu löschen.",
+          )
+        }
       }
 
-      // Prüfen, ob das Turnier Blanketts hat
-      const { data: blankettsData, error: blankettsError } = await supabase
-        .from("blankett_entries")
-        .select("id")
-        .eq("tournament_id", tournamentToDelete.id)
-        .limit(1)
-
-      if (blankettsError) throw blankettsError
-
-      if (blankettsData && blankettsData.length > 0) {
-        throw new Error(
-          "Dieses Turnier kann nicht gelöscht werden, da es Blanketts enthält. Bitte löschen Sie zuerst alle Blanketts dieses Turniers.",
-        )
-      }
-
-      // Prüfen, ob das Turnier Teams hat
-      const { data: teamsData, error: teamsError } = await supabase
-        .from("tournament_teams")
-        .select("id")
-        .eq("tournament_id", tournamentToDelete.id)
-        .limit(1)
-
-      if (teamsError) throw teamsError
-
-      if (teamsData && teamsData.length > 0) {
-        throw new Error(
-          "Dieses Turnier kann nicht gelöscht werden, da ihm Teams zugeordnet sind. Bitte entfernen Sie zuerst alle Teams aus diesem Turnier.",
-        )
-      }
-
-      // Wenn keine Abhängigkeiten bestehen, Turnier löschen
+      // Wenn keine Abhängigkeiten bestehen oder alle gelöscht wurden, Turnier löschen
       const { error } = await supabase.from("tournaments").delete().eq("id", tournamentToDelete.id)
 
       if (error) {
@@ -174,10 +214,12 @@ export default function TournamentsPage() {
       setTournaments(tournaments.filter((tournament) => tournament.id !== tournamentToDelete.id))
       setDeleteDialogOpen(false)
       setTournamentToDelete(null)
+      setForceDelete(false)
     } catch (error: any) {
       console.error("Fehler beim Löschen des Turniers:", error)
       setError(error.message || "Ein Fehler ist aufgetreten beim Löschen des Turniers.")
-      // Dialog offen lassen, damit der Benutzer die Fehlermeldung sehen kann
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -433,17 +475,52 @@ export default function TournamentsPage() {
               nicht rückgängig gemacht werden.
             </DialogDescription>
           </DialogHeader>
+
+          {(dependencies.hasMatches || dependencies.hasBlanketts || dependencies.hasTeams) && (
+            <div className="p-4 bg-amber-500/20 border border-amber-500/50 rounded-md mb-4">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-5 w-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h4 className="font-medium text-amber-600 mb-1">Dieses Turnier hat abhängige Daten:</h4>
+                  <ul className="list-disc pl-5 text-sm space-y-1">
+                    {dependencies.hasMatches && <li>Spiele</li>}
+                    {dependencies.hasBlanketts && <li>Blanketts</li>}
+                    {dependencies.hasTeams && <li>Zugeordnete Teams</li>}
+                  </ul>
+                  <div className="mt-3 flex items-center gap-2">
+                    <Checkbox
+                      id="force-delete"
+                      checked={forceDelete}
+                      onCheckedChange={(checked) => setForceDelete(checked === true)}
+                    />
+                    <label htmlFor="force-delete" className="text-sm font-medium cursor-pointer">
+                      Turnier und alle zugehörigen Daten löschen
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {error && (
             <div className="p-4 bg-destructive/20 text-destructive rounded-md">
               <p>{error}</p>
             </div>
           )}
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={isDeleting}>
               Abbrechen
             </Button>
-            <Button variant="destructive" onClick={handleDeleteConfirm}>
-              Löschen
+            <Button variant="destructive" onClick={handleDeleteConfirm} disabled={isDeleting}>
+              {isDeleting ? (
+                <>
+                  <LoadingSpinner className="mr-2 h-4 w-4" />
+                  Wird gelöscht...
+                </>
+              ) : (
+                "Löschen"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

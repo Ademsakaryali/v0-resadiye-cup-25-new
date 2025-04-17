@@ -33,7 +33,10 @@ import {
   Trash2,
   AlertCircle,
   Phone,
+  AlertTriangle,
+  Loader2,
 } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
 
 export default function TeamsPage() {
   const [teams, setTeams] = useState<Team[]>([])
@@ -46,6 +49,21 @@ export default function TeamsPage() {
   const { user } = useAuth()
   const supabase = getSupabaseClient()
   const [error, setError] = useState<string | null>(null)
+
+  // Füge diese Zustandsvariablen hinzu
+  const [deleteWithDependencies, setDeleteWithDependencies] = useState(false)
+  const [dependencies, setDependencies] = useState<{
+    matches: boolean
+    tournaments: boolean
+    players: boolean
+    changeRequests: boolean
+  }>({
+    matches: false,
+    tournaments: false,
+    players: false,
+    changeRequests: false,
+  })
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     const fetchTeams = async () => {
@@ -113,67 +131,127 @@ export default function TeamsPage() {
     setFilteredTeams(result)
   }, [teams, searchQuery, sortOrder])
 
-  const handleDeleteClick = (team: Team) => {
+  // Ersetze die handleDeleteClick-Funktion
+  const handleDeleteClick = async (team: Team) => {
     setTeamToDelete(team)
-    setDeleteDialogOpen(true)
-    setError(null) // Clear any previous errors
-  }
+    setError(null)
+    setDeleteWithDependencies(false)
+    setIsDeleting(false)
 
-  const handleDeleteConfirm = async () => {
-    if (!teamToDelete) return
-
+    // Prüfen auf Abhängigkeiten
     try {
       // Prüfen, ob das Team in Spielen verwendet wird
       const { data: matchesData, error: matchesError } = await supabase
         .from("matches")
-        .select("id")
-        .or(`team_heim_id.eq.${teamToDelete.id},team_gast_id.eq.${teamToDelete.id}`)
+        .select("*")
+        .or(`team_heim_id.eq.${team.id},team_gast_id.eq.${team.id}`)
         .limit(1)
 
       if (matchesError) throw matchesError
 
-      if (matchesData && matchesData.length > 0) {
-        throw new Error(
-          "Dieses Team kann nicht gelöscht werden, da es in Spielen verwendet wird. Bitte entfernen Sie zuerst alle Spiele, die mit diesem Team verbunden sind.",
-        )
-      }
-
       // Prüfen, ob das Team in Turnieren verwendet wird
       const { data: tournamentData, error: tournamentError } = await supabase
         .from("tournament_teams")
-        .select("id")
-        .eq("team_id", teamToDelete.id)
+        .select("*")
+        .eq("team_id", team.id)
         .limit(1)
 
       if (tournamentError) throw tournamentError
 
-      if (tournamentData && tournamentData.length > 0) {
-        throw new Error(
-          "Dieses Team kann nicht gelöscht werden, da es in Turnieren verwendet wird. Bitte entfernen Sie zuerst alle Turnierbeteiligungen dieses Teams.",
-        )
-      }
-
       // Prüfen, ob das Team Spieler hat
       const { data: spielerData, error: spielerError } = await supabase
         .from("team_spieler")
-        .select("id")
-        .eq("team_id", teamToDelete.id)
+        .select("*")
+        .eq("team_id", team.id)
         .limit(1)
 
       if (spielerError) throw spielerError
 
-      if (spielerData && spielerData.length > 0) {
+      // Prüfen, ob das Team Änderungsanfragen hat
+      const { data: changeRequestsData, error: changeRequestsError } = await supabase
+        .from("team_change_requests")
+        .select("*")
+        .eq("team_id", team.id)
+        .limit(1)
+
+      if (changeRequestsError) throw changeRequestsError
+
+      setDependencies({
+        matches: matchesData && matchesData.length > 0,
+        tournaments: tournamentData && tournamentData.length > 0,
+        players: spielerData && spielerData.length > 0,
+        changeRequests: changeRequestsData && changeRequestsData.length > 0,
+      })
+
+      setDeleteDialogOpen(true)
+    } catch (error: any) {
+      console.error("Fehler beim Prüfen der Abhängigkeiten:", error)
+      setError("Fehler beim Prüfen der Abhängigkeiten: " + error.message)
+      setDeleteDialogOpen(true)
+    }
+  }
+
+  // Ersetze die handleDeleteConfirm-Funktion
+  const handleDeleteConfirm = async () => {
+    if (!teamToDelete) return
+
+    setIsDeleting(true)
+    setError(null)
+
+    try {
+      const hasDependencies =
+        dependencies.matches || dependencies.tournaments || dependencies.players || dependencies.changeRequests
+
+      if (hasDependencies && !deleteWithDependencies) {
         throw new Error(
-          "Dieses Team kann nicht gelöscht werden, da ihm noch Spieler zugeordnet sind. Bitte entfernen Sie zuerst alle Spieler aus diesem Team.",
+          "Dieses Team hat Abhängigkeiten. Bitte aktivieren Sie die Option zum Löschen aller abhängigen Daten.",
         )
       }
 
-      // Wenn keine Abhängigkeiten bestehen, Team löschen
-      const { error } = await supabase.from("teams").delete().eq("id", teamToDelete.id)
+      if (deleteWithDependencies) {
+        // Löschen aller abhängigen Daten in der richtigen Reihenfolge
 
-      if (error) {
-        throw error
+        // 1. Spiele löschen
+        if (dependencies.matches) {
+          const { error: matchesError } = await supabase
+            .from("matches")
+            .delete()
+            .or(`team_heim_id.eq.${teamToDelete.id},team_gast_id.eq.${teamToDelete.id}`)
+
+          if (matchesError) throw matchesError
+        }
+
+        // 2. Turnier-Team-Verknüpfungen löschen
+        if (dependencies.tournaments) {
+          const { error: tournamentError } = await supabase
+            .from("tournament_teams")
+            .delete()
+            .eq("team_id", teamToDelete.id)
+
+          if (tournamentError) throw tournamentError
+        }
+
+        // 3. Spieler-Team-Verknüpfungen löschen
+        if (dependencies.players) {
+          const { error: spielerError } = await supabase.from("team_spieler").delete().eq("team_id", teamToDelete.id)
+
+          if (spielerError) throw spielerError
+        }
+
+        // 4. Team-Änderungsanfragen löschen
+        if (dependencies.changeRequests) {
+          const { error: changeRequestsError } = await supabase
+            .from("team_change_requests")
+            .delete()
+            .eq("team_id", teamToDelete.id)
+
+          if (changeRequestsError) throw changeRequestsError
+        }
       }
+
+      // 5. Team löschen
+      const { error } = await supabase.from("teams").delete().eq("id", teamToDelete.id)
+      if (error) throw error
 
       setTeams(teams.filter((team) => team.id !== teamToDelete.id))
       setDeleteDialogOpen(false)
@@ -181,7 +259,8 @@ export default function TeamsPage() {
     } catch (error: any) {
       console.error("Fehler beim Löschen des Teams:", error)
       setError(error.message || "Ein Fehler ist aufgetreten beim Löschen des Teams.")
-      // Dialog offen lassen, damit der Benutzer die Fehlermeldung sehen kann
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -385,17 +464,84 @@ export default function TeamsPage() {
               rückgängig gemacht werden.
             </DialogDescription>
           </DialogHeader>
+
+          {(dependencies.matches ||
+            dependencies.tournaments ||
+            dependencies.players ||
+            dependencies.changeRequests) && (
+            <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/50 rounded-md mb-4">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-500 mt-0.5" />
+                <div>
+                  <h4 className="text-sm font-medium text-amber-800 dark:text-amber-400">
+                    Dieses Team hat abhängige Daten
+                  </h4>
+                  <ul className="mt-2 text-sm text-amber-700 dark:text-amber-300 space-y-1 list-disc pl-5">
+                    {dependencies.matches && <li>Spiele, in denen dieses Team teilnimmt</li>}
+                    {dependencies.tournaments && <li>Turniere, an denen dieses Team teilnimmt</li>}
+                    {dependencies.players && <li>Spieler, die diesem Team zugeordnet sind</li>}
+                    {dependencies.changeRequests && <li>Änderungsanfragen für dieses Team</li>}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+
           {error && (
             <div className="p-4 bg-destructive/20 text-destructive rounded-md">
               <p>{error}</p>
             </div>
           )}
+
+          {(dependencies.matches ||
+            dependencies.tournaments ||
+            dependencies.players ||
+            dependencies.changeRequests) && (
+            <div className="flex items-start space-x-2 pt-2">
+              <Checkbox
+                id="delete-dependencies"
+                checked={deleteWithDependencies}
+                onCheckedChange={(checked) => setDeleteWithDependencies(checked === true)}
+              />
+              <div className="grid gap-1.5 leading-none">
+                <label
+                  htmlFor="delete-dependencies"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Team und alle zugehörigen Daten löschen
+                </label>
+                <p className="text-sm text-muted-foreground">
+                  Dies löscht das Team und alle damit verbundenen Spiele, Turnierbeteiligungen, Spielerzuordnungen und
+                  Änderungsanfragen.
+                </p>
+              </div>
+            </div>
+          )}
+
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={isDeleting}>
               Abbrechen
             </Button>
-            <Button variant="destructive" onClick={handleDeleteConfirm}>
-              Löschen
+            <Button
+              variant="destructive"
+              onClick={handleDeleteConfirm}
+              disabled={
+                isDeleting ||
+                ((dependencies.matches ||
+                  dependencies.tournaments ||
+                  dependencies.players ||
+                  dependencies.changeRequests) &&
+                  !deleteWithDependencies)
+              }
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Wird gelöscht...
+                </>
+              ) : (
+                "Löschen"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
