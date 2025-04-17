@@ -52,6 +52,12 @@ export default function TeamDetailsPage() {
 
   useEffect(() => {
     const fetchTeamDetails = async () => {
+      // Wenn die ID "new" ist, zur Team-Erstellungsseite weiterleiten
+      if (params.id === "new") {
+        router.push("/teams/new")
+        return
+      }
+
       try {
         // Team mit Trainer-Informationen abrufen
         const { data: teamData, error: teamError } = await supabase

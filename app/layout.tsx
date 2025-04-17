@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { AuthProvider } from "@/context/auth-context"
+import { LayoutProvider } from "@/context/layout-context"
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
 import { Footer } from "@/components/layout/footer"
@@ -22,18 +23,20 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="de">
+    <html lang="de" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
           <AuthProvider>
-            <div className="flex min-h-screen">
-              <Sidebar className="hidden lg:flex" />
-              <div className="flex flex-col flex-1 lg:ml-64">
-                <Header />
-                <main className="flex-grow p-6 mt-16">{children}</main>
-                <Footer />
+            <LayoutProvider>
+              <div className="flex min-h-screen">
+                <Sidebar />
+                <div className="flex-1 flex flex-col min-h-screen">
+                  <Header />
+                  <main className="flex-grow p-6">{children}</main>
+                  <Footer />
+                </div>
               </div>
-            </div>
+            </LayoutProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

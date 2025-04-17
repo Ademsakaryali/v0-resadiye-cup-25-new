@@ -4,258 +4,306 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useAuth } from "@/context/auth-context"
+import { useLayout } from "@/context/layout-context"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
-  Trophy,
+  LayoutDashboard,
   Users,
   UserCog,
-  Settings,
   Menu,
-  LogOut,
-  Home,
-  FileText,
-  User,
   ChevronLeft,
-  ChevronRight,
+  LogOut,
+  FileText,
   Shield,
+  Trophy,
+  UserCircle,
+  Users2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-interface SidebarProps {
-  className?: string
-}
-
-export function Sidebar({ className }: SidebarProps) {
+export function Sidebar() {
   const pathname = usePathname()
-  const { user, trainerTeam, signOut } = useAuth()
-  const [isCollapsed, setIsCollapsed] = useState(false)
-  const [isMobile, setIsMobile] = useState(false)
+  const { user, signOut } = useAuth()
+  const { sidebarExpanded, toggleSidebar, isMobile } = useLayout()
   const [isOpen, setIsOpen] = useState(false)
 
+  // Schließe die mobile Sidebar, wenn sich der Pfad ändert
   useEffect(() => {
-    const checkScreenSize = () => {
-      setIsMobile(window.innerWidth < 1024)
+    if (isMobile) {
+      setIsOpen(false)
     }
+  }, [pathname, isMobile])
 
-    checkScreenSize()
-    window.addEventListener("resize", checkScreenSize)
-    return () => window.removeEventListener("resize", checkScreenSize)
-  }, [])
-
-  const isActive = (path: string) => pathname === path || pathname?.startsWith(`${path}/`)
-
-  // Basis-Navigation
-  let navigation = [
-    { name: "Hauptseite", href: "/", icon: Home, roles: ["Admin", "Trainer", "Spieler"] },
-    { name: "Teams", href: "/teams", icon: Users, roles: ["Admin", "Trainer", "Spieler"] },
-    { name: "Spieler", href: "/spieler", icon: User, roles: ["Admin", "Trainer", "Spieler"] },
-    { name: "Turniere", href: "/tournaments", icon: Trophy, roles: ["Admin", "Trainer", "Spieler"] },
-    { name: "Blanketts", href: "/blanketts", icon: FileText, roles: ["Admin"] },
-    { name: "Benutzerverwaltung", href: "/users", icon: UserCog, roles: ["Admin"] },
-    { name: "Setup", href: "/setup", icon: Settings, roles: ["Admin"] },
-    { name: "Dashboard", href: "/admin/dashboard", icon: Settings, roles: ["Admin"] },
-  ]
-
-  // Füge "Mein Team" für Trainer hinzu, wenn sie ein Team haben
-  if (user?.rolle === "Trainer" && trainerTeam) {
-    navigation = [
-      ...navigation.slice(0, 1), // Hauptseite
-      { name: "Mein Team", href: `/teams/${trainerTeam.id}`, icon: Shield, roles: ["Trainer"] },
-      ...navigation.slice(1), // Rest der Navigation
-    ]
+  const toggleMobileSidebar = () => {
+    setIsOpen(!isOpen)
   }
 
-  // Filtere die Navigation basierend auf der Benutzerrolle
-  const filteredNavigation = navigation.filter((item) => {
-    if (!user) return item.roles.includes("Spieler") // Für nicht angemeldete Benutzer
+  const isActive = (path: string) => {
+    return pathname === path || pathname?.startsWith(`${path}/`)
+  }
+
+  const menuItems = [
+    {
+      title: "Hauptseite",
+      icon: LayoutDashboard,
+      path: "/",
+      roles: ["Admin", "Trainer", "Spieler"],
+    },
+    {
+      title: "Teams",
+      icon: Users,
+      path: "/teams",
+      roles: ["Admin", "Trainer", "Spieler"],
+    },
+    {
+      title: "Spieler",
+      icon: UserCircle,
+      path: "/spieler",
+      roles: ["Admin", "Trainer"],
+    },
+    {
+      title: "Spiele",
+      icon: Users2,
+      path: "/spiele",
+      roles: ["Admin", "Trainer", "Spieler"],
+    },
+    {
+      title: "Turniere",
+      icon: Trophy,
+      path: "/tournaments",
+      roles: ["Admin", "Trainer", "Spieler"],
+    },
+    {
+      title: "Blanketts",
+      icon: FileText,
+      path: "/blanketts",
+      roles: ["Admin"],
+    },
+    {
+      title: "Benutzer",
+      icon: UserCog,
+      path: "/users",
+      roles: ["Admin"],
+    },
+    {
+      title: "Admin Dashboard",
+      icon: Shield,
+      path: "/admin/dashboard",
+      roles: ["Admin"],
+    },
+  ]
+
+  // Filtere Menüpunkte basierend auf der Benutzerrolle
+  const filteredMenuItems = menuItems.filter((item) => {
+    if (!user) return item.roles.includes("Spieler") // Zeige grundlegende Menüpunkte für nicht angemeldete Benutzer
     return item.roles.includes(user.rolle)
   })
 
-  const getInitials = () => {
-    if (!user) return "G"
-    return `${user.vorname.charAt(0)}${user.nachname.charAt(0)}`
+  // Füge "Mein Team" für Trainer hinzu
+  if (user?.rolle === "Trainer" && user?.team_id) {
+    filteredMenuItems.push({
+      title: "Mein Team",
+      icon: Users,
+      path: `/teams/${user.team_id}`,
+      roles: ["Trainer"],
+    })
   }
 
-  const toggleCollapse = () => {
-    setIsCollapsed(!isCollapsed)
-  }
+  return (
+    <>
+      {/* Mobile Menü-Button */}
+      <div className="fixed top-4 left-4 z-50 lg:hidden">
+        <Button
+          variant="outline"
+          size="icon"
+          className="rounded-full bg-background/80 backdrop-blur-sm"
+          onClick={toggleMobileSidebar}
+        >
+          {isOpen ? <ChevronLeft className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </Button>
+      </div>
 
-  const sidebarContent = (
-    <div
-      className={cn(
-        "flex h-full flex-col border-r bg-card/95 backdrop-blur-sm transition-all duration-300",
-        isCollapsed ? "w-[70px]" : "w-64",
-        className,
+      {/* Overlay für Mobile */}
+      {isOpen && isMobile && (
+        <div
+          className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm lg:hidden"
+          onClick={toggleMobileSidebar}
+        ></div>
       )}
-    >
-      <div className="flex h-16 items-center border-b px-4">
-        {!isCollapsed ? (
-          <Link href="/" className="flex items-center space-x-2">
-            <img src="/abstract-geometric-logo.png" alt="Logo" className="h-8 w-8" />
-            <span className="text-lg font-semibold">Resadiye Cup</span>
-          </Link>
-        ) : (
-          <Link href="/" className="mx-auto">
-            <img src="/abstract-geometric-logo.png" alt="Logo" className="h-8 w-8" />
-          </Link>
+
+      {/* Desktop Sidebar */}
+      <div
+        className={cn(
+          "h-screen flex-shrink-0 transition-all duration-300 ease-in-out",
+          sidebarExpanded ? "w-64" : "w-16",
+          isMobile && "hidden lg:block",
         )}
-      </div>
-
-      <ScrollArea className="flex-1 h-[calc(100vh-4rem-4rem)]">
-        <nav className="flex flex-col gap-1 p-2">
-          {filteredNavigation.map((item) => (
-            <Button
-              key={item.name}
-              variant={isActive(item.href) ? "secondary" : "ghost"}
-              className={cn(
-                "justify-start h-10",
-                isCollapsed ? "w-10 p-0 mx-auto" : "px-3",
-                isActive(item.href) && "bg-secondary/50",
-              )}
-              asChild
-            >
-              <Link href={item.href}>
-                <item.icon className={cn("h-5 w-5", isCollapsed ? "" : "mr-3")} />
-                {!isCollapsed && <span>{item.name}</span>}
-              </Link>
-            </Button>
-          ))}
-        </nav>
-      </ScrollArea>
-
-      <div className="border-t p-4 h-16 flex items-center justify-between">
-        {user ? (
-          <>
-            {!isCollapsed ? (
-              <div className="flex items-center">
-                <Avatar className="h-8 w-8 mr-3">
-                  <AvatarImage src={user.profilbild_url || ""} alt={user.vorname} />
-                  <AvatarFallback>{getInitials()}</AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col">
-                  <span className="text-sm font-medium truncate max-w-[120px]">{`${user.vorname} ${user.nachname}`}</span>
-                  <span className="text-xs text-muted-foreground">{user.rolle}</span>
-                </div>
-                <Button variant="ghost" size="icon" className="ml-2" onClick={() => signOut()}>
-                  <LogOut className="h-4 w-4" />
-                </Button>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center w-full">
-                <Avatar className="h-8 w-8 mb-1">
-                  <AvatarImage src={user.profilbild_url || ""} alt={user.vorname} />
-                  <AvatarFallback>{getInitials()}</AvatarFallback>
-                </Avatar>
-                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => signOut()}>
-                  <LogOut className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
-          </>
-        ) : (
-          <>
-            {!isCollapsed ? (
-              <Button asChild variant="outline" className="w-full">
-                <Link href="/login">Anmelden</Link>
-              </Button>
-            ) : (
-              <Button asChild variant="outline" size="icon" className="mx-auto">
-                <Link href="/login">
-                  <LogOut className="h-4 w-4 rotate-180" />
-                </Link>
-              </Button>
-            )}
-          </>
-        )}
-      </div>
-
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={toggleCollapse}
-        className="absolute top-4 -right-4 h-8 w-8 rounded-full border bg-background shadow-md hidden lg:flex"
       >
-        {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-      </Button>
-    </div>
-  )
+        <div
+          className={cn(
+            "fixed top-0 left-0 z-40 h-full bg-card/95 backdrop-blur-sm border-r border-border/40 transition-all duration-300 ease-in-out",
+            sidebarExpanded ? "w-64" : "w-16",
+          )}
+        >
+          <div className="flex flex-col h-full">
+            {/* Logo und Titel */}
+            <div className="flex items-center justify-between p-4 border-b border-border/40 h-14">
+              <Link href="/" className="flex items-center gap-2">
+                <img src="/abstract-geometric-logo.png" alt="Logo" className="h-6 w-6" />
+                {sidebarExpanded && <span className="font-bold text-lg">Resadiye Cup</span>}
+              </Link>
+              <Button variant="ghost" size="icon" onClick={toggleSidebar} className="hidden lg:flex">
+                <ChevronLeft className={cn("h-5 w-5 transition-transform", !sidebarExpanded && "rotate-180")} />
+              </Button>
+            </div>
 
-  // Mobile view uses a sheet
-  if (isMobile) {
-    return (
-      <>
-        <Sheet open={isOpen} onOpenChange={setIsOpen}>
-          <SheetTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="lg:hidden fixed left-4 top-4 z-40"
-              onClick={() => setIsOpen(true)}
-            >
-              <Menu className="h-6 w-6" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="p-0 w-[280px]">
-            <div className="flex flex-col h-full">
-              <div className="w-full flex h-full flex-col border-r bg-card/95 backdrop-blur-sm">
-                <div className="flex h-16 items-center border-b px-4">
-                  <Link href="/" className="flex items-center space-x-2">
-                    <img src="/abstract-geometric-logo.png" alt="Logo" className="h-8 w-8" />
-                    <span className="text-lg font-semibold">Resadiye Cup</span>
+            {/* Menüpunkte */}
+            <ScrollArea className="flex-1 py-2">
+              <nav className="space-y-1 px-2">
+                {filteredMenuItems.map((item) => (
+                  <Link
+                    key={item.path}
+                    href={item.path}
+                    className={cn(
+                      "flex items-center gap-3 rounded-md text-sm transition-colors",
+                      sidebarExpanded ? "px-3 py-2" : "justify-center py-2",
+                      isActive(item.path) ? "bg-primary text-primary-foreground" : "hover:bg-secondary/50",
+                    )}
+                    title={!sidebarExpanded ? item.title : undefined}
+                  >
+                    <item.icon className="h-5 w-5 flex-shrink-0" />
+                    {sidebarExpanded && <span>{item.title}</span>}
                   </Link>
-                </div>
+                ))}
+              </nav>
+            </ScrollArea>
 
-                <ScrollArea className="flex-1 h-[calc(100vh-4rem-4rem)]">
-                  <nav className="flex flex-col gap-1 p-2">
-                    {filteredNavigation.map((item) => (
-                      <Button
-                        key={item.name}
-                        variant={isActive(item.href) ? "secondary" : "ghost"}
-                        className={cn("justify-start h-10 px-3", isActive(item.href) && "bg-secondary/50")}
-                        asChild
-                        onClick={() => setIsOpen(false)}
-                      >
-                        <Link href={item.href}>
-                          <item.icon className="h-5 w-5 mr-3" />
-                          <span>{item.name}</span>
-                        </Link>
-                      </Button>
-                    ))}
-                  </nav>
-                </ScrollArea>
-
-                <div className="border-t p-4 h-16 flex items-center justify-between">
-                  {user ? (
-                    <div className="flex items-center">
-                      <Avatar className="h-8 w-8 mr-3">
-                        <AvatarImage src={user.profilbild_url || ""} alt={user.vorname} />
-                        <AvatarFallback>{getInitials()}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium truncate max-w-[120px]">{`${user.vorname} ${user.nachname}`}</span>
-                        <span className="text-xs text-muted-foreground">{user.rolle}</span>
+            {/* Benutzerbereich */}
+            <div className="border-t border-border/40 p-4">
+              {user ? (
+                <div className={cn("flex items-center", sidebarExpanded ? "justify-between" : "justify-center")}>
+                  {sidebarExpanded ? (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          {user.profilbild_url ? (
+                            <img
+                              src={user.profilbild_url || "/placeholder.svg"}
+                              alt={`${user.vorname} ${user.nachname}`}
+                              className="h-8 w-8 rounded-full object-cover"
+                            />
+                          ) : (
+                            <UserCircle className="h-5 w-5 text-primary" />
+                          )}
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium truncate max-w-[140px]">
+                            {user.vorname} {user.nachname}
+                          </span>
+                          <span className="text-xs text-muted-foreground">{user.rolle}</span>
+                        </div>
                       </div>
-                      <Button variant="ghost" size="icon" className="ml-2" onClick={() => signOut()}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={signOut} title="Abmelden">
                         <LogOut className="h-4 w-4" />
                       </Button>
-                    </div>
+                    </>
                   ) : (
-                    <Button asChild variant="outline" className="w-full">
-                      <Link href="/login">Anmelden</Link>
+                    <Button variant="ghost" size="icon" onClick={signOut} title="Abmelden">
+                      <LogOut className="h-5 w-5" />
                     </Button>
                   )}
                 </div>
-              </div>
+              ) : (
+                <Button
+                  asChild
+                  variant="outline"
+                  className={cn(sidebarExpanded ? "w-full" : "w-8 h-8 p-0 mx-auto")}
+                  title={!sidebarExpanded ? "Anmelden" : undefined}
+                >
+                  <Link href="/login">{sidebarExpanded ? "Anmelden" : <UserCircle className="h-5 w-5" />}</Link>
+                </Button>
+              )}
             </div>
-          </SheetContent>
-        </Sheet>
-      </>
-    )
-  }
+          </div>
+        </div>
+      </div>
 
-  // Desktop view
-  return <div className="fixed left-0 top-0 z-40 h-screen">{sidebarContent}</div>
+      {/* Mobile Sidebar */}
+      <aside
+        className={cn(
+          "fixed top-0 left-0 z-50 h-full w-64 bg-card/95 backdrop-blur-sm border-r border-border/40 transition-transform duration-300 ease-in-out",
+          isOpen ? "translate-x-0" : "-translate-x-full",
+          "lg:hidden",
+        )}
+      >
+        <div className="flex flex-col h-full">
+          {/* Logo und Titel */}
+          <div className="flex items-center justify-between p-4 border-b border-border/40 h-14">
+            <Link href="/" className="flex items-center gap-2">
+              <img src="/abstract-geometric-logo.png" alt="Logo" className="h-6 w-6" />
+              <span className="font-bold text-lg">Resadiye Cup</span>
+            </Link>
+            <Button variant="ghost" size="icon" onClick={toggleMobileSidebar}>
+              <ChevronLeft className="h-5 w-5" />
+            </Button>
+          </div>
+
+          {/* Menüpunkte */}
+          <ScrollArea className="flex-1 py-2">
+            <nav className="space-y-1 px-2">
+              {filteredMenuItems.map((item) => (
+                <Link
+                  key={item.path}
+                  href={item.path}
+                  onClick={toggleMobileSidebar}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors",
+                    isActive(item.path) ? "bg-primary text-primary-foreground" : "hover:bg-secondary/50",
+                  )}
+                >
+                  <item.icon className="h-5 w-5" />
+                  <span>{item.title}</span>
+                </Link>
+              ))}
+            </nav>
+          </ScrollArea>
+
+          {/* Benutzerbereich */}
+          <div className="border-t border-border/40 p-4">
+            {user ? (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    {user.profilbild_url ? (
+                      <img
+                        src={user.profilbild_url || "/placeholder.svg"}
+                        alt={`${user.vorname} ${user.nachname}`}
+                        className="h-8 w-8 rounded-full object-cover"
+                      />
+                    ) : (
+                      <UserCircle className="h-5 w-5 text-primary" />
+                    )}
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium truncate max-w-[140px]">
+                      {user.vorname} {user.nachname}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{user.rolle}</span>
+                  </div>
+                </div>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={signOut} title="Abmelden">
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/login">Anmelden</Link>
+              </Button>
+            )}
+          </div>
+        </div>
+      </aside>
+    </>
+  )
 }

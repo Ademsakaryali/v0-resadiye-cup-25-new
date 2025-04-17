@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { useAuth } from "@/context/auth-context"
+import { useLayout } from "@/context/layout-context"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -12,11 +13,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Bell, ChevronLeft, LogOut } from "lucide-react"
+import { Bell, ChevronLeft, LogOut, Menu } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 export function Header() {
   const pathname = usePathname()
   const { user, signOut } = useAuth()
+  const { sidebarExpanded, toggleSidebar, isMobile } = useLayout()
 
   // Funktion, um den aktuellen Seitentitel zu ermitteln
   const getPageTitle = () => {
@@ -50,9 +53,17 @@ export function Header() {
   }
 
   return (
-    <header className="h-16 border-b bg-card/95 backdrop-blur-sm fixed top-0 left-0 right-0 z-30 lg:left-64 lg:w-[calc(100%-16rem)] transition-all duration-300">
-      <div className="flex h-full items-center justify-between px-6 lg:px-6">
-        <div className="flex items-center">
+    <header className="sticky top-0 z-30 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="flex h-14 items-center justify-between px-4">
+        <div className="flex items-center gap-2">
+          {/* Desktop Toggle Button - nur anzeigen, wenn nicht mobil */}
+          {!isMobile && (
+            <Button variant="ghost" size="icon" onClick={toggleSidebar} className="hidden lg:flex">
+              <Menu className="h-5 w-5" />
+            </Button>
+          )}
+
+          {/* Zurück-Button für Unterseiten */}
           {isSubPage() && (
             <Button variant="ghost" size="icon" asChild className="mr-2">
               <Link href={getParentPath()}>
@@ -60,7 +71,9 @@ export function Header() {
               </Link>
             </Button>
           )}
-          <h1 className="text-xl font-semibold ml-8 lg:ml-0">{getPageTitle()}</h1>
+
+          {/* Seitentitel */}
+          <h1 className={cn("text-xl font-semibold", isMobile ? "ml-8 lg:ml-0" : "")}>{getPageTitle()}</h1>
         </div>
 
         <div className="flex items-center space-x-4">
