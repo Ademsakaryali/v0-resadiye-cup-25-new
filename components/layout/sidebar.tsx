@@ -18,7 +18,6 @@ import {
   Shield,
   Trophy,
   UserCircle,
-  Users2,
   Settings,
   Home,
 } from "lucide-react"
@@ -61,11 +60,6 @@ export function Sidebar() {
       title: "Spieler",
       icon: UserCircle,
       path: "/spieler",
-    },
-    {
-      title: "Spiele",
-      icon: Users2,
-      path: "/spiele",
     },
     {
       title: "Turniere",
@@ -120,38 +114,39 @@ export function Sidebar() {
       : []
 
   // Rendert einen Menüpunkt
-  const renderMenuItem = (item) => (
+  const renderMenuItem = (item, isMobileView = false) => (
     <Link
       key={item.path}
       href={item.path}
       className={cn(
         "flex items-center gap-3 rounded-md text-sm transition-colors",
-        sidebarExpanded ? "px-3 py-2" : "justify-center py-2",
+        isMobileView ? "px-3 py-3" : sidebarExpanded ? "px-3 py-2" : "justify-center py-2",
         isActive(item.path) ? "bg-primary text-primary-foreground" : "hover:bg-secondary/50",
       )}
-      title={!sidebarExpanded ? item.title : undefined}
+      title={!sidebarExpanded && !isMobileView ? item.title : undefined}
+      onClick={isMobileView ? toggleMobileSidebar : undefined}
     >
-      {item.logo && sidebarExpanded ? (
+      {item.logo && (sidebarExpanded || isMobileView) ? (
         <div className="h-5 w-5 rounded-full overflow-hidden flex-shrink-0">
           <img src={item.logo || "/placeholder.svg"} alt={item.title} className="h-full w-full object-cover" />
         </div>
       ) : (
         <item.icon className="h-5 w-5 flex-shrink-0" />
       )}
-      {sidebarExpanded && <span>{item.title}</span>}
+      {(sidebarExpanded || isMobileView) && <span>{item.title}</span>}
     </Link>
   )
 
   // Rendert eine Gruppe von Menüpunkten mit optionalem Titel
-  const renderMenuGroup = (items, title) => {
+  const renderMenuGroup = (items, title, isMobileView = false) => {
     if (items.length === 0) return null
 
     return (
       <div className="space-y-1">
-        {title && sidebarExpanded && (
+        {title && (sidebarExpanded || isMobileView) && (
           <h3 className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{title}</h3>
         )}
-        {items.map(renderMenuItem)}
+        {items.map((item) => renderMenuItem(item, isMobileView))}
       </div>
     )
   }
@@ -302,13 +297,13 @@ export function Sidebar() {
           <ScrollArea className="flex-1 py-2">
             <nav className="space-y-4 px-2">
               {/* Öffentliche Menüpunkte */}
-              {renderMenuGroup(publicMenuItems)}
+              {renderMenuGroup(publicMenuItems, null, true)}
 
               {/* Trainer-Menüpunkte */}
               {trainerMenuItems.length > 0 && (
                 <>
                   <Separator className="mx-3" />
-                  {renderMenuGroup(trainerMenuItems, "Trainer-Bereich")}
+                  {renderMenuGroup(trainerMenuItems, "Trainer-Bereich", true)}
                 </>
               )}
 
@@ -316,7 +311,7 @@ export function Sidebar() {
               {adminMenuItems.length > 0 && (
                 <>
                   <Separator className="mx-3" />
-                  {renderMenuGroup(adminMenuItems, "Administration")}
+                  {renderMenuGroup(adminMenuItems, "Administration", true)}
                 </>
               )}
             </nav>
