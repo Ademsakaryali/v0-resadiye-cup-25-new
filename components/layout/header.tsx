@@ -72,8 +72,8 @@ export function Header() {
             </Button>
           )}
 
-          {/* Seitentitel */}
-          <h1 className={cn("text-xl font-semibold", isMobile ? "ml-8 lg:ml-0" : "")}>{getPageTitle()}</h1>
+          {/* Seitentitel - mit ausreichendem Abstand zum Hamburger-Menü auf Mobilgeräten */}
+          <h1 className={cn("text-xl font-semibold", isMobile ? "ml-12 lg:ml-0" : "")}>{getPageTitle()}</h1>
         </div>
 
         <div className="flex items-center space-x-4">
@@ -101,6 +101,9 @@ export function Header() {
                   </div>
                 </div>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/profile">Mein Profil</Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => signOut()} className="cursor-pointer">
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Abmelden</span>

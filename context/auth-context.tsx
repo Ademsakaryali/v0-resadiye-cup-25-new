@@ -104,9 +104,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Wenn der Trainer ein Team hat, leite ihn zu seinem Team weiter
         if (team) {
           router.push(`/teams/${team.id}`)
+          return { error: null }
         }
       }
 
+      // Für andere Benutzerrollen zur Hauptseite weiterleiten
+      router.push("/")
       return { error: null }
     } catch (error) {
       console.error("Fehler beim Anmelden:", error)
