@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
 import { getSupabaseClient } from "@/lib/supabase/client"
 import type { User, Team } from "@/lib/types"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 
 type AuthContextType = {
   user: User | null
@@ -20,6 +20,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [trainerTeam, setTrainerTeam] = useState<Team | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
+  const pathname = usePathname()
   const supabase = getSupabaseClient()
 
   // Funktion zum Laden des Teams eines Trainers
@@ -49,9 +50,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         // Überprüfen, ob ein Benutzer im localStorage gespeichert ist
         const storedUser = localStorage.getItem("currentUser")
-        const rememberMe = localStorage.getItem("rememberMe") === "true"
 
-        if (storedUser && rememberMe) {
+        // Standardmäßig "Angemeldet bleiben" auf true setzen (24 Stunden)
+        const rememberMe = localStorage.getItem("rememberMe") !== "false"
+
+        // Prüfen, ob die Session abgelaufen ist
+        const sessionExpiry = localStorage.getItem("sessionExpiry")
+        const isSessionValid = sessionExpiry && new Date(sessionExpiry) > new Date()
+
+        if (storedUser && (rememberMe || isSessionValid)) {
           const parsedUser = JSON.parse(storedUser)
           setUser(parsedUser)
 
@@ -59,11 +66,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (parsedUser.rolle === "Trainer") {
             const team = await loadTrainerTeam(parsedUser.id)
             setTrainerTeam(team)
+
+            // Wenn der Trainer ein Team hat und wir auf der Login-Seite oder Startseite sind,
+            // leiten wir ihn direkt zu seinem Team weiter
+            if (team && (pathname === "/login" || pathname === "/")) {
+              router.push(`/teams/${team.id}`)
+            }
           }
-        } else if (storedUser && !rememberMe) {
-          // Wenn "Angemeldet bleiben" nicht aktiviert war, entfernen wir den Benutzer
+        } else if (storedUser && !rememberMe && !isSessionValid) {
+          // Wenn "Angemeldet bleiben" nicht aktiviert war und die Session abgelaufen ist, entfernen wir den Benutzer
           localStorage.removeItem("currentUser")
-          localStorage.removeItem("rememberMe")
+          localStorage.removeItem("sessionExpiry")
         }
       } catch (error) {
         console.error("Fehler beim Abrufen des Benutzers:", error)
@@ -73,9 +86,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     checkAuth()
-  }, [])
+  }, [pathname, router])
 
-  const signIn = async (email: string, password: string, rememberMe = false) => {
+  const signIn = async (email: string, password: string, rememberMe = true) => {
     try {
       // Benutzer anhand der E-Mail-Adresse suchen
       const { data, error } = await supabase.from("users").select("*").eq("email", email).single()
@@ -91,9 +104,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: { message: "Ungültige E-Mail oder Passwort" } }
       }
 
-      // Benutzer im localStorage speichern
+      // Session-Ablaufzeit berechnen (24 Stunden ab jetzt)
+      const expiryDate = new Date()
+      expiryDate.setHours(expiryDate.getHours() + 24)
+
+      // Benutzer und Session-Informationen im localStorage speichern
       localStorage.setItem("currentUser", JSON.stringify(data))
       localStorage.setItem("rememberMe", rememberMe.toString())
+      localStorage.setItem("sessionExpiry", expiryDate.toISOString())
+
       setUser(data as User)
 
       // Wenn der Benutzer ein Trainer ist, lade sein Team
@@ -121,6 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Benutzer aus dem localStorage entfernen
     localStorage.removeItem("currentUser")
     localStorage.removeItem("rememberMe")
+    localStorage.removeItem("sessionExpiry")
     setUser(null)
     setTrainerTeam(null)
     router.push("/login")

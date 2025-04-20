@@ -53,7 +53,7 @@ export function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-30 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-30 w-full border-b bg-white/95 dark:bg-gray-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-gray-900/60">
       <div className="flex h-14 items-center justify-between px-4">
         <div className="flex items-center gap-2">
           {/* Mobile Toggle Button */}

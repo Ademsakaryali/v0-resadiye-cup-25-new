@@ -86,50 +86,49 @@ export default function HomePage() {
 
   return (
     <div className="container mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-2">Willkommen beim Resadiye Cup</h1>
-        <p className="text-muted-foreground">
+      <div className="mb-4">
+        <p className="text-gray-600 dark:text-gray-300">
           Die offizielle Plattform für die Verwaltung von Fußballturnieren des Resadiye Cup.
         </p>
       </div>
 
       {/* Info-Cards - kleiner im mobilen Modus */}
-      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6">
-        <Card className="bg-card/50 backdrop-blur-sm">
-          <CardContent className="p-3 md:p-6 flex items-center">
-            <Trophy className="h-4 w-4 md:h-5 md:w-5 text-primary mr-2" />
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6">
+        <Card className="bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800">
+          <CardContent className="p-3 md:p-4 flex items-center">
+            <Trophy className="h-4 w-4 md:h-5 md:w-5 text-primary-600 mr-2" />
             <div>
-              <p className="text-xs md:text-sm font-medium text-muted-foreground">Turniere</p>
+              <p className="text-xs md:text-sm font-medium text-gray-500 dark:text-gray-400">Turniere</p>
               <p className="text-lg md:text-2xl font-bold">{tournaments.length}</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-card/50 backdrop-blur-sm">
-          <CardContent className="p-3 md:p-6 flex items-center">
-            <Users className="h-4 w-4 md:h-5 md:w-5 text-primary mr-2" />
+        <Card className="bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800">
+          <CardContent className="p-3 md:p-4 flex items-center">
+            <Users className="h-4 w-4 md:h-5 md:w-5 text-primary-600 mr-2" />
             <div>
-              <p className="text-xs md:text-sm font-medium text-muted-foreground">Teams</p>
+              <p className="text-xs md:text-sm font-medium text-gray-500 dark:text-gray-400">Teams</p>
               <p className="text-lg md:text-2xl font-bold">{teamCount}</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-card/50 backdrop-blur-sm">
-          <CardContent className="p-3 md:p-6 flex items-center">
-            <Users className="h-4 w-4 md:h-5 md:w-5 text-primary mr-2" />
+        <Card className="bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800">
+          <CardContent className="p-3 md:p-4 flex items-center">
+            <Users className="h-4 w-4 md:h-5 md:w-5 text-primary-600 mr-2" />
             <div>
-              <p className="text-xs md:text-sm font-medium text-muted-foreground">Spieler</p>
+              <p className="text-xs md:text-sm font-medium text-gray-500 dark:text-gray-400">Spieler</p>
               <p className="text-lg md:text-2xl font-bold">{spielerCount}</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-card/50 backdrop-blur-sm">
-          <CardContent className="p-3 md:p-6 flex items-center">
-            <GamepadIcon className="h-4 w-4 md:h-5 md:w-5 text-primary mr-2" />
+        <Card className="bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800">
+          <CardContent className="p-3 md:p-4 flex items-center">
+            <GamepadIcon className="h-4 w-4 md:h-5 md:w-5 text-primary-600 mr-2" />
             <div>
-              <p className="text-xs md:text-sm font-medium text-muted-foreground">Spiele</p>
+              <p className="text-xs md:text-sm font-medium text-gray-500 dark:text-gray-400">Spiele</p>
               <p className="text-lg md:text-2xl font-bold">{spieleCount}</p>
             </div>
           </CardContent>
@@ -145,11 +144,13 @@ export default function HomePage() {
         </div>
 
         {tournaments.length === 0 ? (
-          <Card className="bg-card/50 backdrop-blur-sm">
+          <Card className="bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800">
             <CardContent className="flex flex-col items-center justify-center py-12">
-              <Trophy className="h-12 w-12 text-muted-foreground mb-4" />
+              <Trophy className="h-12 w-12 text-gray-400 mb-4" />
               <h3 className="text-lg font-medium">Keine aktiven Turniere</h3>
-              <p className="text-sm text-muted-foreground mt-1">Derzeit sind keine aktiven Turniere vorhanden.</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                Derzeit sind keine aktiven Turniere vorhanden.
+              </p>
               {user?.rolle === "Admin" && (
                 <Button className="mt-4" asChild>
                   <Link href="/tournaments/new">Neues Turnier erstellen</Link>
@@ -158,23 +159,23 @@ export default function HomePage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {tournaments.map((tournament) => (
               <Link href={`/tournaments/${tournament.id}`} key={tournament.id}>
-                <Card className="h-full hover:shadow-md transition-shadow duration-200 bg-card/50 backdrop-blur-sm">
+                <Card className="h-full hover:shadow-md transition-shadow duration-200 bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800">
                   <CardHeader>
                     <CardTitle>{tournament.name}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      <div className="flex items-center text-sm text-muted-foreground">
+                      <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                         <Calendar className="mr-2 h-4 w-4" />
                         <span>
                           {formatDate(tournament.start_datum)} - {formatDate(tournament.end_datum)}
                         </span>
                       </div>
                       {tournament.ort && (
-                        <div className="flex items-center text-sm text-muted-foreground">
+                        <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
                           <MapPin className="mr-2 h-4 w-4" />
                           <span>{tournament.ort}</span>
                         </div>
@@ -187,22 +188,6 @@ export default function HomePage() {
           </div>
         )}
       </div>
-
-      {!user && (
-        <Card className="bg-card/50 backdrop-blur-sm mt-8">
-          <CardHeader>
-            <CardTitle>Anmelden</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="mb-4 text-muted-foreground">
-              Melden Sie sich an, um auf alle Funktionen der Plattform zugreifen zu können.
-            </p>
-            <Button asChild>
-              <Link href="/login">Zur Anmeldung</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      )}
     </div>
   )
 }

@@ -7,7 +7,7 @@ import type { Team } from "@/lib/types"
 import { useAuth } from "@/context/auth-context"
 import { Button } from "@/components/ui/button"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
@@ -32,11 +32,14 @@ import {
   Pencil,
   Trash2,
   AlertCircle,
-  Phone,
   AlertTriangle,
   Loader2,
+  Grid,
+  List,
 } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Tabs, TabsContent } from "@/components/ui/tabs"
 
 export default function TeamsPage() {
   const [teams, setTeams] = useState<Team[]>([])
@@ -46,9 +49,11 @@ export default function TeamsPage() {
   const [sortOrder, setSortOrder] = useState<"name_asc" | "name_desc" | "newest" | "oldest">("name_asc")
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [teamToDelete, setTeamToDelete] = useState<Team | null>(null)
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const { user } = useAuth()
   const supabase = getSupabaseClient()
   const [error, setError] = useState<string | null>(null)
+  const [teamSizes, setTeamSizes] = useState<Record<string, number>>({})
 
   // Füge diese Zustandsvariablen hinzu
   const [deleteWithDependencies, setDeleteWithDependencies] = useState(false)
@@ -87,6 +92,20 @@ export default function TeamsPage() {
 
         setTeams(data as Team[])
         setFilteredTeams(data as Team[])
+
+        // Kadergrößen für jedes Team abrufen
+        const teamSizesObj: Record<string, number> = {}
+        for (const team of data) {
+          const { count, error: countError } = await supabase
+            .from("team_spieler")
+            .select("*", { count: "exact", head: true })
+            .eq("team_id", team.id)
+
+          if (!countError) {
+            teamSizesObj[team.id] = count || 0
+          }
+        }
+        setTeamSizes(teamSizesObj)
       } catch (error) {
         console.error("Fehler beim Laden der Teams:", error)
       } finally {
@@ -281,14 +300,10 @@ export default function TeamsPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-        <h1 className="text-3xl font-bold">Teams</h1>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-2">
         {user?.rolle === "Admin" && (
-          <Button
-            asChild
-            className="bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-700 hover:to-primary-600"
-          >
+          <Button asChild className="bg-primary-600 hover:bg-primary-700">
             <Link href="/teams/new">
               <UserPlus className="mr-2 h-4 w-4" />
               Neues Team erstellen
@@ -297,166 +312,251 @@ export default function TeamsPage() {
         )}
       </div>
 
-      <div className="bg-secondary/30 rounded-lg p-4 mb-6">
-        <div className="flex flex-col md:flex-row gap-4">
+      <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3 mb-4">
+        <div className="flex flex-col md:flex-row gap-3 items-center">
           <div className="relative flex-grow">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
               placeholder="Teams durchsuchen..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-background/50"
+              className="pl-10 bg-white dark:bg-gray-900"
             />
           </div>
-          <div className="flex-shrink-0 w-full md:w-64">
-            <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as any)}>
-              <SelectTrigger className="bg-background/50">
-                <div className="flex items-center">
-                  <Filter className="mr-2 h-4 w-4" />
-                  <SelectValue placeholder="Sortieren nach" />
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="name_asc">
+          <div className="flex gap-2">
+            <div className="w-full md:w-48">
+              <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as any)}>
+                <SelectTrigger className="bg-white dark:bg-gray-900">
                   <div className="flex items-center">
-                    <SortAsc className="mr-2 h-4 w-4" />
-                    Name (A-Z)
+                    <Filter className="mr-2 h-4 w-4" />
+                    <SelectValue placeholder="Sortieren nach" />
                   </div>
-                </SelectItem>
-                <SelectItem value="name_desc">
-                  <div className="flex items-center">
-                    <SortDesc className="mr-2 h-4 w-4" />
-                    Name (Z-A)
-                  </div>
-                </SelectItem>
-                <SelectItem value="newest">Neueste zuerst</SelectItem>
-                <SelectItem value="oldest">Älteste zuerst</SelectItem>
-              </SelectContent>
-            </Select>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name_asc">
+                    <div className="flex items-center">
+                      <SortAsc className="mr-2 h-4 w-4" />
+                      Name (A-Z)
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="name_desc">
+                    <div className="flex items-center">
+                      <SortDesc className="mr-2 h-4 w-4" />
+                      Name (Z-A)
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="newest">Neueste zuerst</SelectItem>
+                  <SelectItem value="oldest">Älteste zuerst</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex border rounded-md overflow-hidden">
+              <Button
+                variant={viewMode === "grid" ? "default" : "ghost"}
+                size="icon"
+                onClick={() => setViewMode("grid")}
+                className="rounded-none border-0"
+              >
+                <Grid className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === "list" ? "default" : "ghost"}
+                size="icon"
+                onClick={() => setViewMode("list")}
+                className="rounded-none border-0"
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
 
       {filteredTeams.length === 0 ? (
-        <div className="text-center py-12 bg-secondary/20 rounded-lg">
-          <Users className="mx-auto h-12 w-12 text-muted-foreground" />
+        <div className="text-center py-8 bg-white dark:bg-gray-900/60 rounded-lg border border-gray-200 dark:border-gray-800">
+          <Users className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-lg font-medium">Keine Teams gefunden</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             {searchQuery
               ? "Es wurden keine Teams gefunden, die Ihren Suchkriterien entsprechen."
               : "Es wurden noch keine Teams erstellt."}
           </p>
           {user?.rolle === "Admin" && (
             <div className="mt-6">
-              <Button
-                asChild
-                className="bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-700 hover:to-primary-600"
-              >
+              <Button asChild className="bg-primary-600 hover:bg-primary-700">
                 <Link href="/teams/new">Neues Team erstellen</Link>
               </Button>
             </div>
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredTeams.map((team) => (
-            <Card
-              key={team.id}
-              className="overflow-hidden border border-border/50 bg-card/50 backdrop-blur-sm hover:bg-card/80 transition-all duration-200"
-            >
-              {user?.rolle === "Admin" && (
-                <div className="absolute top-2 right-2 z-10">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 rounded-full bg-background/80 hover:bg-background"
-                      >
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem asChild>
-                        <Link href={`/teams/${team.id}/edit`} className="flex items-center">
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Bearbeiten
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => handleDeleteClick(team)}
-                        className="flex items-center text-destructive focus:text-destructive"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Löschen
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              )}
-
-              <div className="relative h-40 bg-gradient-to-b from-primary-900/50 to-background/50">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <img
-                    src={getTeamLogo(team) || "/placeholder.svg"}
-                    alt={`${team.name} Logo`}
-                    className="h-24 w-24 object-contain"
-                  />
-                </div>
-              </div>
-
-              <CardHeader className="pb-2">
-                <CardTitle className="text-xl font-bold">{team.name}</CardTitle>
-                <CardDescription className="line-clamp-2 h-10">
-                  {team.beschreibung || "Keine Beschreibung verfügbar"}
-                </CardDescription>
-              </CardHeader>
-
-              <CardContent className="pb-2">
-                {team.trainer && (
-                  <div className="flex items-center mt-2">
-                    <Avatar className="h-8 w-8 mr-2 border border-primary/20">
-                      <AvatarImage src={team.trainer.profilbild_url || ""} alt={team.trainer.vorname} />
-                      <AvatarFallback className="bg-primary-900/50">{`${team.trainer.vorname.charAt(0)}${team.trainer.nachname.charAt(0)}`}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="text-sm font-medium">Trainer</p>
-                      <p className="text-xs text-muted-foreground">{`${team.trainer.vorname} ${team.trainer.nachname}`}</p>
+        <Tabs defaultValue={viewMode} value={viewMode} onValueChange={(value) => setViewMode(value as "grid" | "list")}>
+          <TabsContent value="grid" className="mt-0">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {filteredTeams.map((team) => (
+                <Card
+                  key={team.id}
+                  className="overflow-hidden border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/60 hover:shadow-md transition-all duration-200"
+                >
+                  {user?.rolle === "Admin" && (
+                    <div className="absolute top-2 right-2 z-10">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-7 w-7 rounded-full bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-800"
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem asChild>
+                            <Link href={`/teams/${team.id}/edit`} className="flex items-center">
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Bearbeiten
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleDeleteClick(team)}
+                            className="flex items-center text-red-600 focus:text-red-600"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Löschen
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
+                  )}
 
-                    {user?.rolle === "Admin" && team.trainer.telefonnummer && (
-                      <div className="ml-auto flex items-center text-xs text-muted-foreground">
-                        <Phone className="h-3 w-3 mr-1" />
-                        {team.trainer.telefonnummer}
-                      </div>
-                    )}
+                  <div className="flex items-center p-3 border-b border-gray-200 dark:border-gray-800">
+                    <div className="flex-shrink-0 h-10 w-10 mr-3">
+                      <img
+                        src={getTeamLogo(team) || "/placeholder.svg"}
+                        alt={`${team.name} Logo`}
+                        className="h-full w-full object-contain"
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-sm font-medium truncate">{team.name}</h3>
+                      {team.trainer && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                          Trainer: {team.trainer.vorname} {team.trainer.nachname}
+                        </p>
+                      )}
+                    </div>
+                    <div className="ml-2 flex flex-col items-end">
+                      <Badge variant="outline" className="text-xs">
+                        {teamSizes[team.id] || 0} Spieler
+                      </Badge>
+                      {user?.rolle === "Admin" && (
+                        <Badge variant={team.ist_aktiv ? "outline" : "secondary"} className="mt-1 text-xs">
+                          {team.ist_aktiv ? "Aktiv" : "Inaktiv"}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
-                )}
 
-                {user?.rolle === "Admin" && (
-                  <div className="mt-4">
-                    <Badge variant={team.ist_aktiv ? "outline" : "secondary"} className="bg-background/50">
-                      {team.ist_aktiv ? "Aktiv" : "Inaktiv"}
-                    </Badge>
-                  </div>
-                )}
-              </CardContent>
+                  <CardFooter className="p-2">
+                    <Button asChild variant="ghost" size="sm" className="w-full">
+                      <Link href={`/teams/${team.id}`}>Details</Link>
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
 
-              <CardFooter>
-                <Button asChild variant="secondary" className="w-full">
-                  <Link href={`/teams/${team.id}`}>Details anzeigen</Link>
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
-        </div>
+          <TabsContent value="list" className="mt-0">
+            <div className="bg-white dark:bg-gray-900/60 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Team</TableHead>
+                    <TableHead>Trainer</TableHead>
+                    <TableHead className="hidden md:table-cell">Kadergröße</TableHead>
+                    {user?.rolle === "Admin" && <TableHead className="hidden md:table-cell">Status</TableHead>}
+                    <TableHead className="w-[100px]">Aktionen</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredTeams.map((team) => (
+                    <TableRow key={team.id}>
+                      <TableCell>
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-8 w-8 mr-3">
+                            <img
+                              src={getTeamLogo(team) || "/placeholder.svg"}
+                              alt={`${team.name} Logo`}
+                              className="h-full w-full object-contain"
+                            />
+                          </div>
+                          <span className="font-medium">{team.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {team.trainer && (
+                          <div className="flex items-center">
+                            <Avatar className="h-6 w-6 mr-2">
+                              <AvatarImage src={team.trainer.profilbild_url || ""} alt={team.trainer.vorname} />
+                              <AvatarFallback className="text-xs">{`${team.trainer.vorname.charAt(0)}${team.trainer.nachname.charAt(0)}`}</AvatarFallback>
+                            </Avatar>
+                            <span className="text-sm">{`${team.trainer.vorname} ${team.trainer.nachname}`}</span>
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        <Badge variant="outline" className="text-xs">
+                          {teamSizes[team.id] || 0} Spieler
+                        </Badge>
+                      </TableCell>
+                      {user?.rolle === "Admin" && (
+                        <TableCell className="hidden md:table-cell">
+                          <Badge variant={team.ist_aktiv ? "outline" : "secondary"} className="text-xs">
+                            {team.ist_aktiv ? "Aktiv" : "Inaktiv"}
+                          </Badge>
+                        </TableCell>
+                      )}
+                      <TableCell>
+                        <div className="flex items-center space-x-1">
+                          <Button asChild variant="ghost" size="icon" className="h-8 w-8">
+                            <Link href={`/teams/${team.id}`}>
+                              <Search className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                          {user?.rolle === "Admin" && (
+                            <>
+                              <Button asChild variant="ghost" size="icon" className="h-8 w-8">
+                                <Link href={`/teams/${team.id}/edit`}>
+                                  <Pencil className="h-4 w-4" />
+                                </Link>
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                onClick={() => handleDeleteClick(team)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </TabsContent>
+        </Tabs>
       )}
 
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="bg-card border border-border/50 backdrop-blur-sm">
+        <DialogContent className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-destructive" />
+              <AlertCircle className="h-5 w-5 text-red-500" />
               Team löschen
             </DialogTitle>
             <DialogDescription>
@@ -488,7 +588,7 @@ export default function TeamsPage() {
           )}
 
           {error && (
-            <div className="p-4 bg-destructive/20 text-destructive rounded-md">
+            <div className="p-4 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300 rounded-md">
               <p>{error}</p>
             </div>
           )}
@@ -510,7 +610,7 @@ export default function TeamsPage() {
                 >
                   Team und alle zugehörigen Daten löschen
                 </label>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
                   Dies löscht das Team und alle damit verbundenen Spiele, Turnierbeteiligungen, Spielerzuordnungen und
                   Änderungsanfragen.
                 </p>

@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { ArrowLeft, Calendar, CheckCircle, AlertCircle } from "lucide-react"
+import { ArrowLeft, Calendar, CheckCircle, AlertCircle, Clock } from "lucide-react"
 
 export default function BlankettSettingsPage() {
   const params = useParams()
@@ -32,6 +32,7 @@ export default function BlankettSettingsPage() {
     ohne_anmeldung: false,
     countdown_aktiv: false,
     countdown_datum: "",
+    countdown_zeit: "12:00", // Neue Standardzeit: 12:00 Uhr
   })
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -61,15 +62,28 @@ export default function BlankettSettingsPage() {
         if (settingsError) throw settingsError
 
         if (settingsData) {
+          // Datum und Zeit aus dem ISO-String extrahieren
+          let countdownDate = ""
+          let countdownTime = "12:00"
+
+          if (settingsData.countdown_datum) {
+            const date = new Date(settingsData.countdown_datum)
+            countdownDate = date.toISOString().split("T")[0]
+
+            // Zeit im Format HH:MM extrahieren
+            const hours = date.getHours().toString().padStart(2, "0")
+            const minutes = date.getMinutes().toString().padStart(2, "0")
+            countdownTime = `${hours}:${minutes}`
+          }
+
           setSettings(settingsData)
           setFormData({
             min_spieler: settingsData.min_spieler,
             max_spieler: settingsData.max_spieler,
             ohne_anmeldung: settingsData.ohne_anmeldung,
             countdown_aktiv: settingsData.countdown_aktiv,
-            countdown_datum: settingsData.countdown_datum
-              ? new Date(settingsData.countdown_datum).toISOString().split("T")[0]
-              : "",
+            countdown_datum: countdownDate,
+            countdown_zeit: countdownTime,
           })
         } else {
           // Standardwerte setzen
@@ -82,6 +96,7 @@ export default function BlankettSettingsPage() {
             ohne_anmeldung: false,
             countdown_aktiv: true,
             countdown_datum: defaultCountdownDate.toISOString().split("T")[0],
+            countdown_zeit: "12:00",
           })
         }
       } catch (error: any) {
@@ -133,7 +148,13 @@ export default function BlankettSettingsPage() {
         throw new Error("Bitte geben Sie ein Datum für den Countdown an.")
       }
 
-      const countdownDate = formData.countdown_aktiv ? new Date(formData.countdown_datum) : null
+      // Datum und Zeit kombinieren
+      let countdownDate = null
+      if (formData.countdown_aktiv) {
+        const [hours, minutes] = formData.countdown_zeit.split(":").map(Number)
+        countdownDate = new Date(formData.countdown_datum)
+        countdownDate.setHours(hours, minutes, 0, 0)
+      }
 
       if (settings) {
         // Einstellungen aktualisieren
@@ -211,18 +232,14 @@ export default function BlankettSettingsPage() {
 
   return (
     <RequireAuth allowedRoles={["Admin"]}>
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-6">
-          <Button variant="ghost" asChild className="mb-4">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="mb-4">
+          <Button variant="ghost" asChild className="mb-2">
             <Link href="/blanketts">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Zurück zur Blankett-Übersicht
             </Link>
           </Button>
-          <h1 className="text-3xl font-bold">Blankett-Einstellungen</h1>
-          <p className="text-muted-foreground mt-2">
-            Konfigurieren Sie die Einstellungen für Mannschaftsblanketts für das Turnier "{tournament.name}".
-          </p>
         </div>
 
         {error && (
@@ -234,16 +251,16 @@ export default function BlankettSettingsPage() {
         )}
 
         {success && (
-          <Alert className="mb-6 bg-green-900/20 border-green-600/30 text-green-500">
+          <Alert className="mb-6 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-300">
             <CheckCircle className="h-4 w-4" />
             <AlertTitle>Erfolg</AlertTitle>
             <AlertDescription>{success}</AlertDescription>
           </Alert>
         )}
 
-        <Card className="border border-border/50 bg-card/50 backdrop-blur-sm">
+        <Card className="border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900/60 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-xl">Turnier: {tournament.name}</CardTitle>
+            <CardTitle className="text-xl">Blankett-Einstellungen: {tournament.name}</CardTitle>
             <CardDescription className="flex items-center">
               <Calendar className="h-4 w-4 mr-1" />
               {formatDate(tournament.start_datum)} - {formatDate(tournament.end_datum)}
@@ -263,9 +280,9 @@ export default function BlankettSettingsPage() {
                       max="99"
                       value={formData.min_spieler}
                       onChange={handleInputChange}
-                      className="bg-background/50"
+                      className="bg-white dark:bg-gray-800"
                     />
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
                       Die Mindestanzahl an Spielern, die ein Team für das Blankett angeben muss.
                     </p>
                   </div>
@@ -279,9 +296,9 @@ export default function BlankettSettingsPage() {
                       max="99"
                       value={formData.max_spieler}
                       onChange={handleInputChange}
-                      className="bg-background/50"
+                      className="bg-white dark:bg-gray-800"
                     />
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
                       Die Maximalanzahl an Spielern, die ein Team für das Blankett angeben kann.
                     </p>
                   </div>
@@ -296,7 +313,7 @@ export default function BlankettSettingsPage() {
                     />
                     <Label htmlFor="ohne_anmeldung">Blankett ohne Anmeldung aufrufbar</Label>
                   </div>
-                  <p className="text-xs text-muted-foreground pl-6">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 pl-6">
                     Wenn aktiviert, können Teams das Blankett auch ohne Anmeldung ausfüllen.
                   </p>
                 </div>
@@ -310,35 +327,48 @@ export default function BlankettSettingsPage() {
                     />
                     <Label htmlFor="countdown_aktiv">Countdown aktivieren</Label>
                   </div>
-                  <p className="text-xs text-muted-foreground pl-6">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 pl-6">
                     Wenn aktiviert, wird ein Countdown angezeigt, bis zu dem das Blankett eingereicht werden muss.
                   </p>
                 </div>
 
                 {formData.countdown_aktiv && (
-                  <div className="space-y-2">
-                    <Label htmlFor="countdown_datum">Countdown-Datum</Label>
-                    <Input
-                      id="countdown_datum"
-                      name="countdown_datum"
-                      type="date"
-                      value={formData.countdown_datum}
-                      onChange={handleInputChange}
-                      className="bg-background/50"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Das Datum, bis zu dem das Blankett eingereicht werden muss.
-                    </p>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="countdown_datum">Countdown-Datum</Label>
+                      <Input
+                        id="countdown_datum"
+                        name="countdown_datum"
+                        type="date"
+                        value={formData.countdown_datum}
+                        onChange={handleInputChange}
+                        className="bg-white dark:bg-gray-800"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="countdown_zeit">Countdown-Uhrzeit</Label>
+                      <div className="flex items-center">
+                        <Clock className="mr-2 h-4 w-4 text-gray-400" />
+                        <Input
+                          id="countdown_zeit"
+                          name="countdown_zeit"
+                          type="time"
+                          value={formData.countdown_zeit}
+                          onChange={handleInputChange}
+                          className="bg-white dark:bg-gray-800"
+                        />
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Die genaue Uhrzeit, bis zu der das Blankett eingereicht werden muss.
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>
 
               <CardFooter className="px-0 pt-6">
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="ml-auto bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-700 hover:to-primary-600"
-                >
+                <Button type="submit" disabled={isSubmitting} className="ml-auto bg-primary-600 hover:bg-primary-700">
                   {isSubmitting ? "Wird gespeichert..." : "Einstellungen speichern"}
                 </Button>
               </CardFooter>
