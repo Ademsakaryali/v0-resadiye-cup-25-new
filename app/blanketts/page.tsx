@@ -12,8 +12,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Calendar, CheckCircle, Clock, FileText, Settings, AlertCircle, Search } from "lucide-react"
+import { Calendar, CheckCircle, Clock, FileText, Settings, AlertCircle, Search, Filter, Trophy } from "lucide-react"
 import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select"
 
 export default function BlankettPage() {
   const { user } = useAuth()
@@ -23,6 +24,8 @@ export default function BlankettPage() {
   const [settings, setSettings] = useState<Record<string, BlankettSettings>>({})
   const [blanketts, setBlanketts] = useState<BlankettEntry[]>([])
   const [searchQuery, setSearchQuery] = useState("")
+  const [statusFilter, setStatusFilter] = useState<string>("alle")
+  const [tournamentFilter, setTournamentFilter] = useState<string>("alle")
   const [filteredBlanketts, setFilteredBlanketts] = useState<BlankettEntry[]>([])
 
   useEffect(() => {
@@ -57,7 +60,8 @@ export default function BlankettPage() {
             *,
             team:team_id (
               id,
-              name
+              name,
+              logo_url
             ),
             tournament:tournament_id (
               id,
@@ -81,21 +85,30 @@ export default function BlankettPage() {
   }, [supabase])
 
   useEffect(() => {
-    // Blanketts filtern basierend auf der Suchanfrage
-    if (!searchQuery) {
-      setFilteredBlanketts(blanketts)
-      return
+    // Blanketts filtern basierend auf der Suchanfrage und den Filtern
+    let filtered = [...blanketts]
+
+    // Suche anwenden
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter(
+        (blankett) =>
+          blankett.team?.name.toLowerCase().includes(query) || blankett.tournament?.name.toLowerCase().includes(query),
+      )
     }
 
-    const query = searchQuery.toLowerCase()
-    const filtered = blanketts.filter(
-      (blankett) =>
-        blankett.team?.name.toLowerCase().includes(query) ||
-        blankett.tournament?.name.toLowerCase().includes(query) ||
-        blankett.status.toLowerCase().includes(query),
-    )
+    // Status-Filter anwenden
+    if (statusFilter !== "alle") {
+      filtered = filtered.filter((blankett) => blankett.status === statusFilter)
+    }
+
+    // Turnier-Filter anwenden
+    if (tournamentFilter !== "alle") {
+      filtered = filtered.filter((blankett) => blankett.tournament_id === tournamentFilter)
+    }
+
     setFilteredBlanketts(filtered)
-  }, [searchQuery, blanketts])
+  }, [searchQuery, statusFilter, tournamentFilter, blanketts])
 
   const formatDate = (dateString: string) => {
     if (!dateString) return "Unbekannt"
@@ -144,13 +157,13 @@ export default function BlankettPage() {
 
   return (
     <RequireAuth allowedRoles={["Admin"]}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-          <h1 className="text-3xl font-bold">Mannschaftsblanketts</h1>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 sm:mb-8 gap-4">
+          <h1 className="text-2xl sm:text-3xl font-bold">Mannschaftsblanketts</h1>
         </div>
 
         <Tabs defaultValue="blanketts" className="w-full">
-          <TabsList className="w-full grid grid-cols-2 mb-6 bg-secondary/30">
+          <TabsList className="w-full grid grid-cols-2 mb-4 sm:mb-6 bg-secondary/30">
             <TabsTrigger value="blanketts" className="flex items-center">
               <FileText className="mr-2 h-4 w-4" />
               Blanketts
@@ -162,82 +175,188 @@ export default function BlankettPage() {
           </TabsList>
 
           <TabsContent value="blanketts">
-            <div className="mb-6">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Blanketts durchsuchen..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-background/50"
-                />
-              </div>
-            </div>
+            <div className="space-y-4">
+              {/* Suchleiste und Filter */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="relative col-span-1 sm:col-span-2">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Blanketts durchsuchen..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 bg-background/50"
+                  />
+                </div>
 
-            <Card className="border border-border/50 bg-card/50 backdrop-blur-sm">
-              <CardHeader>
-                <CardTitle className="text-xl">Alle Blanketts</CardTitle>
-                <CardDescription>Übersicht aller Mannschaftsblanketts</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {filteredBlanketts.length === 0 ? (
-                  <div className="text-center py-8">
-                    <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
-                    <h3 className="mt-2 text-lg font-medium">Keine Blanketts gefunden</h3>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {searchQuery
-                        ? "Es wurden keine Blanketts gefunden, die Ihren Suchkriterien entsprechen."
-                        : "Es wurden noch keine Blanketts erstellt."}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Team</TableHead>
-                          <TableHead>Turnier</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Eingereicht am</TableHead>
-                          <TableHead className="text-right">Aktionen</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
+                <div>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="bg-background/50">
+                      <div className="flex items-center">
+                        <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
+                        <span className="truncate">
+                          {statusFilter === "alle"
+                            ? "Status: Alle"
+                            : `Status: ${statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}`}
+                        </span>
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="alle">Alle Status</SelectItem>
+                      <SelectItem value="entwurf">Entwurf</SelectItem>
+                      <SelectItem value="eingereicht">Eingereicht</SelectItem>
+                      <SelectItem value="genehmigt">Genehmigt</SelectItem>
+                      <SelectItem value="abgelehnt">Abgelehnt</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Select value={tournamentFilter} onValueChange={setTournamentFilter}>
+                    <SelectTrigger className="bg-background/50">
+                      <div className="flex items-center">
+                        <Trophy className="h-4 w-4 mr-2 text-muted-foreground" />
+                        <span className="truncate">
+                          {tournamentFilter === "alle"
+                            ? "Turnier: Alle"
+                            : `Turnier: ${tournaments.find((t) => t.id === tournamentFilter)?.name?.substring(0, 15) || "..."}`}
+                        </span>
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="alle">Alle Turniere</SelectItem>
+                      {tournaments.map((tournament) => (
+                        <SelectItem key={tournament.id} value={tournament.id}>
+                          {tournament.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <Card className="border border-border/50 bg-card/50 backdrop-blur-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-xl">Alle Blanketts</CardTitle>
+                  <CardDescription>Übersicht aller Mannschaftsblanketts</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {filteredBlanketts.length === 0 ? (
+                    <div className="text-center py-8">
+                      <FileText className="mx-auto h-12 w-12 text-muted-foreground" />
+                      <h3 className="mt-2 text-lg font-medium">Keine Blanketts gefunden</h3>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {searchQuery || statusFilter !== "alle" || tournamentFilter !== "alle"
+                          ? "Es wurden keine Blanketts gefunden, die Ihren Filterkriterien entsprechen."
+                          : "Es wurden noch keine Blanketts erstellt."}
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      {/* Desktop-Ansicht: Tabelle */}
+                      <div className="hidden md:block overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Team</TableHead>
+                              <TableHead>Turnier</TableHead>
+                              <TableHead>Status</TableHead>
+                              <TableHead>Eingereicht am</TableHead>
+                              <TableHead className="text-right">Aktionen</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {filteredBlanketts.map((blankett) => (
+                              <TableRow key={blankett.id}>
+                                <TableCell>
+                                  <div className="flex items-center gap-2">
+                                    {blankett.team?.logo_url && (
+                                      <div className="w-6 h-6 rounded-full overflow-hidden bg-secondary/20 flex-shrink-0">
+                                        <img
+                                          src={blankett.team.logo_url || "/placeholder.svg"}
+                                          alt={`${blankett.team?.name} Logo`}
+                                          className="w-full h-full object-cover"
+                                        />
+                                      </div>
+                                    )}
+                                    <span className="font-medium">{blankett.team?.name}</span>
+                                  </div>
+                                </TableCell>
+                                <TableCell>{blankett.tournament?.name}</TableCell>
+                                <TableCell>{getStatusBadge(blankett.status)}</TableCell>
+                                <TableCell>
+                                  {blankett.eingereicht_am ? formatDate(blankett.eingereicht_am) : "-"}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <Button asChild size="sm" variant="outline">
+                                    <Link href={`/blanketts/${blankett.id}`}>Details</Link>
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+
+                      {/* Mobile-Ansicht: Karten */}
+                      <div className="md:hidden space-y-3">
                         {filteredBlanketts.map((blankett) => (
-                          <TableRow key={blankett.id}>
-                            <TableCell className="font-medium">{blankett.team?.name}</TableCell>
-                            <TableCell>{blankett.tournament?.name}</TableCell>
-                            <TableCell>{getStatusBadge(blankett.status)}</TableCell>
-                            <TableCell>{blankett.eingereicht_am ? formatDate(blankett.eingereicht_am) : "-"}</TableCell>
-                            <TableCell className="text-right">
+                          <div
+                            key={blankett.id}
+                            className="p-3 rounded-lg border border-border/50 bg-card/30 space-y-2"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                {blankett.team?.logo_url && (
+                                  <div className="w-8 h-8 rounded-full overflow-hidden bg-secondary/20 flex-shrink-0">
+                                    <img
+                                      src={blankett.team.logo_url || "/placeholder.svg"}
+                                      alt={`${blankett.team?.name} Logo`}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  </div>
+                                )}
+                                <div>
+                                  <div className="font-medium">{blankett.team?.name}</div>
+                                  <div className="text-sm text-muted-foreground">{blankett.tournament?.name}</div>
+                                </div>
+                              </div>
+                              {getStatusBadge(blankett.status)}
+                            </div>
+
+                            <div className="flex items-center justify-between text-sm">
+                              <div className="text-muted-foreground">
+                                {blankett.eingereicht_am
+                                  ? `Eingereicht: ${formatDate(blankett.eingereicht_am)}`
+                                  : "Noch nicht eingereicht"}
+                              </div>
                               <Button asChild size="sm" variant="outline">
                                 <Link href={`/blanketts/${blankett.id}`}>Details</Link>
                               </Button>
-                            </TableCell>
-                          </TableRow>
+                            </div>
+                          </div>
                         ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="settings">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
               {tournaments.map((tournament) => (
                 <Card key={tournament.id} className="border border-border/50 bg-card/50 backdrop-blur-sm">
-                  <CardHeader>
+                  <CardHeader className="pb-3">
                     <CardTitle className="text-lg">{tournament.name}</CardTitle>
                     <CardDescription className="flex items-center">
                       <Calendar className="h-4 w-4 mr-1" />
                       {formatDate(tournament.start_datum)} - {formatDate(tournament.end_datum)}
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="pb-3">
                     {settings[tournament.id] ? (
-                      <div className="space-y-4">
+                      <div className="space-y-3">
                         <div className="grid grid-cols-2 gap-2 text-sm">
                           <div className="p-2 rounded-md bg-secondary/20">
                             <span className="text-muted-foreground">Min. Spieler:</span>{" "}
@@ -269,7 +388,7 @@ export default function BlankettPage() {
                       </div>
                     )}
                   </CardContent>
-                  <div className="px-6 pb-6">
+                  <div className="px-4 pb-4">
                     <Button asChild className="w-full">
                       <Link href={`/blanketts/settings/${tournament.id}`}>
                         <Settings className="mr-2 h-4 w-4" />

@@ -138,6 +138,17 @@ export default function TeamDetailPage() {
     }
   }
 
+  // Funktion zum Weiterleiten zum Blankett
+  const handleBlankettClick = () => {
+    // Wenn nur ein Blankett vorhanden ist, direkt dorthin weiterleiten
+    if (blanketts.length === 1) {
+      router.push(`/teams/${team.id}/blankett/${blanketts[0].id}`)
+    } else {
+      // Ansonsten zur Blankett-Übersicht
+      router.push(`/teams/${team.id}/blankett`)
+    }
+  }
+
   // Wenn die ID "new" ist, wird die Seite zur Erstellungsseite weitergeleitet
   // Dies ist eine zusätzliche Sicherheitsmaßnahme, falls die Weiterleitung im useEffect nicht funktioniert
   if (params.id === "new") {
@@ -224,11 +235,9 @@ export default function TeamDetailPage() {
                   </Button>
                 )}
                 {(isTrainer() || isAdmin()) && (
-                  <Button asChild variant="default" size="sm" className="w-full">
-                    <Link href={`/teams/${team.id}/blankett`}>
-                      <FileText className="mr-2 h-4 w-4" />
-                      Mannschaftsblankett
-                    </Link>
+                  <Button variant="default" size="sm" className="w-full" onClick={handleBlankettClick}>
+                    <FileText className="mr-2 h-4 w-4" />
+                    Mannschaftsblankett
                   </Button>
                 )}
               </div>

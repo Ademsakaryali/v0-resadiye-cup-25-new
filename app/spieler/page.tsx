@@ -5,7 +5,7 @@ import { getSupabaseClient } from "@/lib/supabase/client"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { User, Search, Filter, SortAsc, SortDesc, Grid, List } from "lucide-react"
+import { User, Search, Filter, SortAsc, SortDesc, Grid, List, Calendar } from "lucide-react"
 import { useAuth } from "@/context/auth-context"
 import Link from "next/link"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -27,9 +27,19 @@ export default function SpielerPage() {
   useEffect(() => {
     const fetchSpieler = async () => {
       try {
+        // Spieler mit Teamzugehörigkeit abrufen
         const { data, error } = await supabase
           .from("users")
-          .select("*")
+          .select(`
+            *,
+            team_spieler:team_spieler(
+              team:team_id(
+                id,
+                name,
+                logo_url
+              )
+            )
+          `)
           .eq("rolle", "Spieler")
           .order("nachname", { ascending: true })
 
@@ -37,8 +47,20 @@ export default function SpielerPage() {
           throw error
         }
 
-        setSpieler(data || [])
-        setFilteredSpieler(data || [])
+        // Daten verarbeiten, um das aktuelle Team zu extrahieren
+        const processedData =
+          data?.map((player) => {
+            const currentTeam =
+              player.team_spieler && player.team_spieler.length > 0 ? player.team_spieler[0].team : null
+
+            return {
+              ...player,
+              currentTeam,
+            }
+          }) || []
+
+        setSpieler(processedData)
+        setFilteredSpieler(processedData)
       } catch (error) {
         console.error("Fehler beim Laden der Spieler:", error)
       } finally {
@@ -58,8 +80,7 @@ export default function SpielerPage() {
       result = result.filter(
         (player) =>
           player.vorname?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          player.nachname?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          player.email?.toLowerCase().includes(searchQuery.toLowerCase()),
+          player.nachname?.toLowerCase().includes(searchQuery.toLowerCase()),
       )
     }
 
@@ -85,6 +106,20 @@ export default function SpielerPage() {
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "Nicht angegeben"
     return new Date(dateString).toLocaleDateString("de-DE")
+  }
+
+  const calculateAge = (dateString: string | null) => {
+    if (!dateString) return "Unbekannt"
+    const birthDate = new Date(dateString)
+    const today = new Date()
+    let age = today.getFullYear() - birthDate.getFullYear()
+    const monthDiff = today.getMonth() - birthDate.getMonth()
+
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--
+    }
+
+    return age
   }
 
   if (loading) {
@@ -194,7 +229,7 @@ export default function SpielerPage() {
                   <Card className="bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800 hover:shadow-md transition-all duration-200 h-full">
                     <CardContent className="p-4">
                       <div className="flex items-center mb-3">
-                        <Avatar className="h-10 w-10 mr-3">
+                        <Avatar className="h-16 w-16 mr-3">
                           <AvatarImage src={player.profilbild_url || ""} alt={player.vorname} />
                           <AvatarFallback>
                             {player.vorname?.charAt(0)}
@@ -202,20 +237,40 @@ export default function SpielerPage() {
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <h3 className="font-medium">{`${player.vorname} ${player.nachname}`}</h3>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">{player.email}</p>
+                          <h3 className="font-medium text-lg">{`${player.vorname} ${player.nachname}`}</h3>
+                          <div className="flex items-center mt-1">
+                            <Calendar className="h-3 w-3 mr-1 text-gray-500" />
+                            <span className="text-xs text-gray-500">{formatDate(player.geburtsdatum)}</span>
+                            {player.geburtsdatum && (
+                              <span className="text-xs ml-2 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">
+                                {calculateAge(player.geburtsdatum)} Jahre
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                      <div className="space-y-1 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-gray-500 dark:text-gray-400">Geburtsdatum:</span>
-                          <span>{formatDate(player.geburtsdatum)}</span>
+
+                      {player.currentTeam ? (
+                        <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+                          <p className="text-xs text-gray-500 mb-2">Aktuelles Team:</p>
+                          <div className="flex items-center">
+                            <div className="h-8 w-8 mr-2 flex-shrink-0">
+                              <img
+                                src={
+                                  player.currentTeam.logo_url || "/placeholder.svg?height=50&width=50&query=soccer team"
+                                }
+                                alt={player.currentTeam.name}
+                                className="h-full w-full object-contain"
+                              />
+                            </div>
+                            <span className="font-medium text-sm">{player.currentTeam.name}</span>
+                          </div>
                         </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-500 dark:text-gray-400">Telefon:</span>
-                          <span>{player.telefonnummer || "Nicht angegeben"}</span>
+                      ) : (
+                        <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+                          <p className="text-xs text-gray-500">Kein Team zugewiesen</p>
                         </div>
-                      </div>
+                      )}
                     </CardContent>
                   </Card>
                 </Link>
@@ -229,9 +284,9 @@ export default function SpielerPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
-                    <TableHead className="hidden md:table-cell">E-Mail</TableHead>
-                    <TableHead className="hidden md:table-cell">Geburtsdatum</TableHead>
-                    <TableHead className="hidden md:table-cell">Telefon</TableHead>
+                    <TableHead>Geburtsdatum</TableHead>
+                    <TableHead>Alter</TableHead>
+                    <TableHead>Team</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -239,21 +294,38 @@ export default function SpielerPage() {
                     <TableRow key={player.id} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50">
                       <TableCell>
                         <Link href={`/spieler/${player.id}`} className="flex items-center">
-                          <Avatar className="h-8 w-8 mr-2">
+                          <Avatar className="h-10 w-10 mr-2">
                             <AvatarImage src={player.profilbild_url || ""} alt={player.vorname} />
                             <AvatarFallback className="text-xs">{`${player.vorname?.charAt(0)}${player.nachname?.charAt(0)}`}</AvatarFallback>
                           </Avatar>
                           <span className="font-medium">{`${player.vorname} ${player.nachname}`}</span>
                         </Link>
                       </TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        <span className="text-sm text-gray-500 dark:text-gray-400">{player.email}</span>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell">
+                      <TableCell>
                         <span className="text-sm">{formatDate(player.geburtsdatum)}</span>
                       </TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        <span className="text-sm">{player.telefonnummer || "Nicht angegeben"}</span>
+                      <TableCell>
+                        <span className="text-sm">
+                          {player.geburtsdatum ? `${calculateAge(player.geburtsdatum)} Jahre` : "Unbekannt"}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {player.currentTeam ? (
+                          <div className="flex items-center">
+                            <div className="h-6 w-6 mr-2 flex-shrink-0">
+                              <img
+                                src={
+                                  player.currentTeam.logo_url || "/placeholder.svg?height=50&width=50&query=soccer team"
+                                }
+                                alt={player.currentTeam.name}
+                                className="h-full w-full object-contain"
+                              />
+                            </div>
+                            <span className="text-sm">{player.currentTeam.name}</span>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-gray-500">Kein Team</span>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}

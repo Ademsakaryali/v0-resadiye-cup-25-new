@@ -10,8 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { ArrowLeft, AlertCircle, Mail, Phone, Calendar, User, Users } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
+import { ArrowLeft, AlertCircle, Calendar, User, Users } from "lucide-react"
 
 export default function SpielerDetailPage() {
   const params = useParams()
@@ -74,6 +73,20 @@ export default function SpielerDetailPage() {
     return new Date(dateString).toLocaleDateString("de-DE")
   }
 
+  const calculateAge = (dateString: string | null) => {
+    if (!dateString) return "Unbekannt"
+    const birthDate = new Date(dateString)
+    const today = new Date()
+    let age = today.getFullYear() - birthDate.getFullYear()
+    const monthDiff = today.getMonth() - birthDate.getMonth()
+
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--
+    }
+
+    return age
+  }
+
   const getInitials = (vorname: string, nachname: string) => {
     return `${vorname?.charAt(0) || ""}${nachname?.charAt(0) || ""}`
   }
@@ -116,19 +129,18 @@ export default function SpielerDetailPage() {
 
       <div className="flex flex-col md:flex-row gap-6">
         {/* Spieler-Informationen */}
-        <div className="w-full md:w-1/3">
+        <div className="w-full md:w-1/2">
           <Card className="bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800">
             <CardHeader className="pb-2">
               <div className="flex justify-center mb-4">
-                <Avatar className="h-24 w-24">
+                <Avatar className="h-32 w-32">
                   <AvatarImage src={spieler.profilbild_url || ""} alt={spieler.vorname} />
-                  <AvatarFallback className="text-2xl">{getInitials(spieler.vorname, spieler.nachname)}</AvatarFallback>
+                  <AvatarFallback className="text-3xl">{getInitials(spieler.vorname, spieler.nachname)}</AvatarFallback>
                 </Avatar>
               </div>
               <CardTitle className="text-center text-2xl">
                 {spieler.vorname} {spieler.nachname}
               </CardTitle>
-              <CardDescription className="text-center">{spieler.email}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -139,27 +151,15 @@ export default function SpielerDetailPage() {
                     <p className="font-medium">{formatDate(spieler.geburtsdatum)}</p>
                   </div>
                 </div>
-                <div className="flex items-center">
-                  <Phone className="h-5 w-5 mr-3 text-gray-500 dark:text-gray-400" />
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Telefonnummer</p>
-                    <p className="font-medium">{spieler.telefonnummer || "Nicht angegeben"}</p>
+                {spieler.geburtsdatum && (
+                  <div className="flex items-center">
+                    <User className="h-5 w-5 mr-3 text-gray-500 dark:text-gray-400" />
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Alter</p>
+                      <p className="font-medium">{calculateAge(spieler.geburtsdatum)} Jahre</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center">
-                  <Mail className="h-5 w-5 mr-3 text-gray-500 dark:text-gray-400" />
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">E-Mail</p>
-                    <p className="font-medium">{spieler.email}</p>
-                  </div>
-                </div>
-                <div className="flex items-center">
-                  <User className="h-5 w-5 mr-3 text-gray-500 dark:text-gray-400" />
-                  <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Rolle</p>
-                    <Badge variant="outline">{spieler.rolle}</Badge>
-                  </div>
-                </div>
+                )}
               </div>
 
               {user && user.rolle === "Admin" && (
@@ -174,7 +174,7 @@ export default function SpielerDetailPage() {
         </div>
 
         {/* Teams des Spielers */}
-        <div className="w-full md:w-2/3">
+        <div className="w-full md:w-1/2">
           <Card className="bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800">
             <CardHeader>
               <CardTitle>Teams</CardTitle>
@@ -190,13 +190,13 @@ export default function SpielerDetailPage() {
                   </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   {teams.map((team) => (
                     <Link href={`/teams/${team.id}`} key={team.id}>
                       <Card className="bg-gray-50 dark:bg-gray-800/50 hover:shadow-md transition-all duration-200">
                         <CardContent className="p-4">
                           <div className="flex items-center">
-                            <div className="flex-shrink-0 h-12 w-12 mr-3">
+                            <div className="flex-shrink-0 h-16 w-16 mr-4">
                               <img
                                 src={team.logo_url || "/placeholder.svg?height=100&width=100&query=soccer team"}
                                 alt={team.name}
@@ -204,9 +204,9 @@ export default function SpielerDetailPage() {
                               />
                             </div>
                             <div>
-                              <h3 className="font-medium">{team.name}</h3>
+                              <h3 className="font-medium text-lg">{team.name}</h3>
                               {team.trainer && (
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
                                   Trainer: {team.trainer.vorname} {team.trainer.nachname}
                                 </p>
                               )}
