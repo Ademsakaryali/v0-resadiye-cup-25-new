@@ -60,7 +60,6 @@ export default function BlankettDetailPage() {
   const [position, setPosition] = useState<string>("")
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
-  const [showSubmitDialog, setShowSubmitDialog] = useState(false)
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [editingSpieler, setEditingSpieler] = useState<BlankettSpieler | null>(null)
@@ -490,7 +489,7 @@ export default function BlankettDetailPage() {
   }
 
   const handleSaveBlankett = async () => {
-    if (!blankett) return
+    if (!blankett || !team || !tournament) return
 
     try {
       setSaving(true)
@@ -515,19 +514,37 @@ export default function BlankettDetailPage() {
         })
       }
 
-      // Benachrichtigung für Administratoren erstellen
+      // Benachrichtigung für Administratoren erstellen, nur wenn der Benutzer kein Admin ist
       if (user?.rolle !== "Admin") {
-        const { error: notificationError } = await supabase.from("notifications").insert({
-          user_id: null, // Für alle Admins
-          type: "blankett_saved",
-          message: `Team ${team?.name} hat ein Blankett für ${tournament?.name} gespeichert.`,
-          blankett_id: blankett.id,
-          is_read: false,
-          created_at: new Date().toISOString(),
-        })
+        try {
+          // Prüfen, ob die Tabelle existiert
+          const { data: tableExists, error: tableCheckError } = await supabase
+            .from("notifications")
+            .select("id")
+            .limit(1)
 
-        if (notificationError) {
+          // Wenn die Tabelle existiert, Benachrichtigung erstellen
+          if (!tableCheckError) {
+            const notificationData = {
+              user_id: null, // Für alle Admins
+              type: "blankett_saved",
+              message: `Team ${team.name} hat ein Blankett für ${tournament.name} gespeichert.`,
+              blankett_id: blankett.id,
+              is_read: false,
+              created_at: new Date().toISOString(),
+            }
+
+            const { error: notificationError } = await supabase.from("notifications").insert(notificationData)
+
+            if (notificationError) {
+              console.error("Fehler beim Erstellen der Benachrichtigung:", notificationError)
+            }
+          } else {
+            console.log("Notifications-Tabelle existiert nicht, überspringe Benachrichtigung")
+          }
+        } catch (notificationError) {
           console.error("Fehler beim Erstellen der Benachrichtigung:", notificationError)
+          // Fehler bei der Benachrichtigung sollten den Speichervorgang nicht blockieren
         }
       }
 
@@ -538,51 +555,6 @@ export default function BlankettDetailPage() {
       setError(error.message)
     } finally {
       setSaving(false)
-    }
-  }
-
-  const handleSubmitBlankett = async () => {
-    if (!blankett || !settings) return
-
-    // Prüfen, ob die Mindestanzahl an Spielern erreicht ist
-    if (settings.min_spieler > blankettSpieler.length) {
-      setError(`Es müssen mindestens ${settings.min_spieler} Spieler hinzugefügt werden.`)
-      return
-    }
-
-    try {
-      setSubmitting(true)
-      setError(null)
-
-      // Blankett einreichen
-      const { error } = await supabase
-        .from("blankett_entries")
-        .update({
-          status: "eingereicht",
-          eingereicht_am: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", blankett.id)
-
-      if (error) throw error
-
-      // Blankett aktualisieren
-      setBlankett({
-        ...blankett,
-        status: "eingereicht",
-        eingereicht_am: new Date().toISOString(),
-      })
-
-      setSuccess("Blankett erfolgreich eingereicht.")
-      setShowSubmitDialog(false)
-      setTimeout(() => {
-        router.push(`/teams/${team?.id}`)
-      }, 2000)
-    } catch (error: any) {
-      console.error("Fehler beim Einreichen des Blanketts:", error)
-      setError(error.message)
-    } finally {
-      setSubmitting(false)
     }
   }
 
