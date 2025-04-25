@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import "./dashboard.css"
 import {
   Bell,
   Calendar,
@@ -415,20 +416,20 @@ export default function AdminDashboardPage() {
         </div>
 
         <Tabs defaultValue="pending" className="w-full">
-          <TabsList className="w-full grid grid-cols-4 mb-6 bg-secondary/30">
-            <TabsTrigger value="pending" className="flex items-center">
+          <TabsList className="w-full mb-6 bg-secondary/30 flex flex-nowrap overflow-x-auto snap-x scrollbar-hide">
+            <TabsTrigger value="pending" className="flex items-center whitespace-nowrap flex-shrink-0 snap-start">
               <FileText className="mr-2 h-4 w-4" />
               Ausstehende Blanketts
             </TabsTrigger>
-            <TabsTrigger value="team-changes" className="flex items-center">
+            <TabsTrigger value="team-changes" className="flex items-center whitespace-nowrap flex-shrink-0 snap-start">
               <Pencil className="mr-2 h-4 w-4" />
               Teamänderungen
             </TabsTrigger>
-            <TabsTrigger value="activities" className="flex items-center">
+            <TabsTrigger value="activities" className="flex items-center whitespace-nowrap flex-shrink-0 snap-start">
               <Clock className="mr-2 h-4 w-4" />
               Neueste Aktivitäten
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="flex items-center">
+            <TabsTrigger value="notifications" className="flex items-center whitespace-nowrap flex-shrink-0 snap-start">
               <Bell className="mr-2 h-4 w-4" />
               Benachrichtigungen
             </TabsTrigger>
