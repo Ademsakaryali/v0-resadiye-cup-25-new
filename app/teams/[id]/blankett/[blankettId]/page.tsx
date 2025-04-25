@@ -81,8 +81,6 @@ export default function BlankettDetailPage() {
   const [addDialogTab, setAddDialogTab] = useState<string>("existierend")
 
   // Neue Zustandsvariablen für die Spielerbearbeitung
-  const [showEditPlayerDialog, setShowEditPlayerDialog] = useState(false)
-  const [editingPlayer, setEditingPlayer] = useState<any>(null)
   const [editPlayerVorname, setEditPlayerVorname] = useState("")
   const [editPlayerNachname, setEditPlayerNachname] = useState("")
   const [searchResults, setSearchResults] = useState<any[]>([])
@@ -469,11 +467,13 @@ export default function BlankettDetailPage() {
     setEditingSpieler(spieler)
     setTrikotNummer(spieler.trikot_nummer.toString())
     setPosition(spieler.position)
+    setEditPlayerVorname(spieler.spieler?.vorname || "")
+    setEditPlayerNachname(spieler.spieler?.nachname || "")
     setShowEditDialog(true)
   }
 
   const handleUpdateSpieler = async () => {
-    if (!editingSpieler || !trikotNummer || !position || !blankett) {
+    if (!editingSpieler || !trikotNummer || !position || !blankett || !editPlayerVorname || !editPlayerNachname) {
       setError("Bitte füllen Sie alle Felder aus.")
       return
     }
@@ -492,8 +492,8 @@ export default function BlankettDetailPage() {
         return
       }
 
-      // Spieler aktualisieren
-      const { error } = await supabase
+      // Spieler-Blankett-Daten aktualisieren
+      const { error: blankettSpielerError } = await supabase
         .from("blankett_spieler")
         .update({
           trikot_nummer: Number.parseInt(trikotNummer),
@@ -501,22 +501,40 @@ export default function BlankettDetailPage() {
         })
         .eq("id", editingSpieler.id)
 
-      if (error) throw error
+      if (blankettSpielerError) throw blankettSpielerError
+
+      // Spielerdaten aktualisieren
+      const { error: spielerError } = await supabase
+        .from("users")
+        .update({
+          vorname: editPlayerVorname,
+          nachname: editPlayerNachname,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", editingSpieler.spieler_id)
+
+      if (spielerError) throw spielerError
 
       // Blankett aktualisieren
       await supabase.from("blankett_entries").update({ updated_at: new Date().toISOString() }).eq("id", blankett.id)
 
       // Spielerliste aktualisieren
       setBlankettSpieler(
-        blankettSpieler.map((s) =>
-          s.id === editingSpieler.id
-            ? {
-                ...s,
-                trikot_nummer: Number.parseInt(trikotNummer),
-                position: position,
-              }
-            : s,
-        ),
+        blankettSpieler.map((s) => {
+          if (s.id === editingSpieler.id) {
+            return {
+              ...s,
+              trikot_nummer: Number.parseInt(trikotNummer),
+              position: position,
+              spieler: {
+                ...s.spieler,
+                vorname: editPlayerVorname,
+                nachname: editPlayerNachname,
+              },
+            }
+          }
+          return s
+        }),
       )
 
       // Dialog schließen und Formular zurücksetzen
@@ -524,6 +542,8 @@ export default function BlankettDetailPage() {
       setEditingSpieler(null)
       setTrikotNummer("")
       setPosition("")
+      setEditPlayerVorname("")
+      setEditPlayerNachname("")
 
       setSuccess("Spieler erfolgreich aktualisiert.")
       setTimeout(() => setSuccess(null), 3000)
@@ -685,68 +705,6 @@ export default function BlankettDetailPage() {
       setError(error.message)
     } finally {
       setSubmitting(false)
-    }
-  }
-
-  const handleEditPlayerDetails = (spieler: any) => {
-    setEditingPlayer(spieler.spieler)
-    setEditPlayerVorname(spieler.spieler?.vorname || "")
-    setEditPlayerNachname(spieler.spieler?.nachname || "")
-    setShowEditPlayerDialog(true)
-  }
-
-  const handleUpdatePlayerDetails = async () => {
-    if (!editingPlayer || !editPlayerVorname || !editPlayerNachname) {
-      setError("Bitte füllen Sie alle Felder aus.")
-      return
-    }
-
-    try {
-      setSaving(true)
-      setError(null)
-
-      // Spieler aktualisieren
-      const { error } = await supabase
-        .from("users")
-        .update({
-          vorname: editPlayerVorname,
-          nachname: editPlayerNachname,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", editingPlayer.id)
-
-      if (error) throw error
-
-      // Spielerliste aktualisieren
-      setBlankettSpieler(
-        blankettSpieler.map((s) => {
-          if (s.spieler_id === editingPlayer.id) {
-            return {
-              ...s,
-              spieler: {
-                ...s.spieler,
-                vorname: editPlayerVorname,
-                nachname: editPlayerNachname,
-              },
-            }
-          }
-          return s
-        }),
-      )
-
-      // Dialog schließen und Formular zurücksetzen
-      setShowEditPlayerDialog(false)
-      setEditingPlayer(null)
-      setEditPlayerVorname("")
-      setEditPlayerNachname("")
-
-      setSuccess("Spielerdaten erfolgreich aktualisiert.")
-      setTimeout(() => setSuccess(null), 3000)
-    } catch (error: any) {
-      console.error("Fehler beim Aktualisieren der Spielerdaten:", error)
-      setError(error.message)
-    } finally {
-      setSaving(false)
     }
   }
 
@@ -1181,6 +1139,7 @@ export default function BlankettDetailPage() {
                                             src={
                                               player.currentTeam.logo_url ||
                                               "/placeholder.svg?height=30&width=30&query=soccer team" ||
+                                              "/placeholder.svg" ||
                                               "/placeholder.svg"
                                             }
                                             alt={player.currentTeam.name}
@@ -1353,15 +1312,6 @@ export default function BlankettDetailPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => handleEditPlayerDetails(spieler)}
-                              disabled={saving}
-                              className="h-8 w-8"
-                            >
-                              <UserIcon className="h-4 w-4 text-green-600" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
                               onClick={() => handleEditSpieler(spieler)}
                               disabled={saving}
                               className="h-8 w-8"
@@ -1394,7 +1344,7 @@ export default function BlankettDetailPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Spieler bearbeiten</DialogTitle>
-            <DialogDescription>Ändern Sie die Trikotnummer oder Position des Spielers.</DialogDescription>
+            <DialogDescription>Ändern Sie die Spielerdaten und Position.</DialogDescription>
           </DialogHeader>
 
           <div className="grid gap-4 py-4">
@@ -1419,6 +1369,25 @@ export default function BlankettDetailPage() {
                 </div>
               </div>
             )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="vorname-edit">Vorname</Label>
+                <Input
+                  id="vorname-edit"
+                  value={editPlayerVorname}
+                  onChange={(e) => setEditPlayerVorname(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="nachname-edit">Nachname</Label>
+                <Input
+                  id="nachname-edit"
+                  value={editPlayerNachname}
+                  onChange={(e) => setEditPlayerNachname(e.target.value)}
+                />
+              </div>
+            </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -1453,64 +1422,10 @@ export default function BlankettDetailPage() {
             <Button variant="outline" onClick={() => setShowEditDialog(false)}>
               Abbrechen
             </Button>
-            <Button onClick={handleUpdateSpieler} disabled={!trikotNummer || !position || saving}>
-              {saving ? "Wird aktualisiert..." : "Speichern"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog zum Bearbeiten der Spielerdaten */}
-      <Dialog open={showEditPlayerDialog} onOpenChange={setShowEditPlayerDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Spielerdaten bearbeiten</DialogTitle>
-            <DialogDescription>Ändern Sie den Vor- und Nachnamen des Spielers.</DialogDescription>
-          </DialogHeader>
-
-          <div className="grid gap-4 py-4">
-            {editingPlayer && (
-              <div className="flex items-center gap-2 p-2 rounded-md bg-secondary/20">
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src={editingPlayer?.profilbild_url || ""} alt={editingPlayer?.vorname} />
-                  <AvatarFallback>{getInitials(`${editingPlayer?.vorname} ${editingPlayer?.nachname}`)}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <div className="font-medium">
-                    {editingPlayer?.vorname} {editingPlayer?.nachname}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {editingPlayer?.geburtsdatum && formatDate(editingPlayer.geburtsdatum)}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="vorname-edit">Vorname</Label>
-                <Input
-                  id="vorname-edit"
-                  value={editPlayerVorname}
-                  onChange={(e) => setEditPlayerVorname(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="nachname-edit">Nachname</Label>
-                <Input
-                  id="nachname-edit"
-                  value={editPlayerNachname}
-                  onChange={(e) => setEditPlayerNachname(e.target.value)}
-                />
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditPlayerDialog(false)}>
-              Abbrechen
-            </Button>
-            <Button onClick={handleUpdatePlayerDetails} disabled={!editPlayerVorname || !editPlayerNachname || saving}>
+            <Button
+              onClick={handleUpdateSpieler}
+              disabled={!trikotNummer || !position || !editPlayerVorname || !editPlayerNachname || saving}
+            >
               {saving ? "Wird aktualisiert..." : "Speichern"}
             </Button>
           </DialogFooter>
