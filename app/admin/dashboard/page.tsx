@@ -26,6 +26,7 @@ import {
   Trophy,
   Users,
   Pencil,
+  Lock,
 } from "lucide-react"
 import {
   Dialog,
@@ -37,6 +38,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
+import { useRouter } from "next/navigation"
 
 export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true)
@@ -56,13 +58,14 @@ export default function AdminDashboardPage() {
   const [notificationNumber, setNotificationNumber] = useState("")
   const [success, setSuccess] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [showApproveDialog, setShowApproveDialog] = useState(false)
-  const [showRejectDialog, setShowRejectDialog] = useState(false)
+  const [showApproveDialog, setShowRejectDialog] = useState(false)
+  const [showRejectDialog, setShowApproveDialog] = useState(false)
   const [selectedTeamChange, setSelectedTeamChange] = useState<any | null>(null)
   const [rejectReason, setRejectReason] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { user } = useAuth()
   const supabase = getSupabaseClient()
+  const router = useRouter()
 
   useEffect(() => {
     const fetchData = async () => {
@@ -93,6 +96,7 @@ export default function AdminDashboardPage() {
             tournament_id,
             status,
             eingereicht_am,
+            is_locked,
             team:team_id (
               id,
               name,
@@ -108,7 +112,7 @@ export default function AdminDashboardPage() {
               name
             )
           `)
-          .eq("status", "eingereicht")
+          .in("status", ["eingereicht", "entwurf"])
           .order("eingereicht_am", { ascending: false })
 
         setPendingBlanketts(pendingBlankettsData || [])
@@ -143,39 +147,14 @@ export default function AdminDashboardPage() {
 
         setPendingTeamChanges(pendingTeamChangesData || [])
 
-        // Neueste Aktivitäten abrufen (hier simuliert)
-        const now = new Date()
-        const recentActivitiesData = [
-          {
-            id: 1,
-            type: "blankett_submitted",
-            team: "FC Adler",
-            tournament: "Resadiye Cup 2024",
-            timestamp: new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString(),
-          },
-          {
-            id: 2,
-            type: "team_created",
-            team: "SV Löwen",
-            user: "Thomas Müller",
-            timestamp: new Date(now.getTime() - 5 * 60 * 60 * 1000).toISOString(),
-          },
-          {
-            id: 3,
-            type: "match_updated",
-            match: "FC Adler vs SV Löwen",
-            tournament: "Sommerturnier 2024",
-            timestamp: new Date(now.getTime() - 8 * 60 * 60 * 1000).toISOString(),
-          },
-          {
-            id: 4,
-            type: "player_added",
-            player: "Max Mustermann",
-            team: "FC Adler",
-            timestamp: new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString(),
-          },
-        ]
-        setRecentActivities(recentActivitiesData)
+        // Neueste Aktivitäten abrufen
+        const { data: activitiesData } = await supabase
+          .from("notifications")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(10)
+
+        setRecentActivities(activitiesData || [])
 
         // Kommende Turniere abrufen
         const { data: upcomingTournamentsData } = await supabase
@@ -202,55 +181,25 @@ export default function AdminDashboardPage() {
     }
 
     fetchData()
-  }, [supabase])
+  }, [supabase, router])
 
   const handleApproveBlankett = async (blankettId: string) => {
     try {
-      // Blankett genehmigen
-      const { error } = await supabase
-        .from("blankett_entries")
-        .update({
-          status: "genehmigt",
-          genehmigt_am: new Date().toISOString(),
-        })
-        .eq("id", blankettId)
-
-      if (error) throw error
-
-      // Aktualisiere die Liste der ausstehenden Blanketts
-      setPendingBlanketts(pendingBlanketts.filter((blankett) => blankett.id !== blankettId))
-      setSuccess("Blankett erfolgreich genehmigt.")
-
-      // Erfolgsbenachrichtigung nach 3 Sekunden ausblenden
-      setTimeout(() => setSuccess(null), 3000)
+      // Weiterleitung zur Detailseite des Blanketts
+      router.push(`/admin/blanketts/${blankettId}`)
     } catch (error: any) {
-      console.error("Fehler beim Genehmigen des Blanketts:", error)
-      setError(error.message || "Fehler beim Genehmigen des Blanketts.")
+      console.error("Fehler beim Navigieren zum Blankett:", error)
+      setError(error.message || "Fehler beim Navigieren zum Blankett.")
     }
   }
 
   const handleRejectBlankett = async (blankettId: string) => {
     try {
-      // Blankett ablehnen
-      const { error } = await supabase
-        .from("blankett_entries")
-        .update({
-          status: "abgelehnt",
-          genehmigt_am: null,
-        })
-        .eq("id", blankettId)
-
-      if (error) throw error
-
-      // Aktualisiere die Liste der ausstehenden Blanketts
-      setPendingBlanketts(pendingBlanketts.filter((blankett) => blankett.id !== blankettId))
-      setSuccess("Blankett erfolgreich abgelehnt.")
-
-      // Erfolgsbenachrichtigung nach 3 Sekunden ausblenden
-      setTimeout(() => setSuccess(null), 3000)
+      // Weiterleitung zur Detailseite des Blanketts
+      router.push(`/admin/blanketts/${blankettId}`)
     } catch (error: any) {
-      console.error("Fehler beim Ablehnen des Blanketts:", error)
-      setError(error.message || "Fehler beim Ablehnen des Blanketts.")
+      console.error("Fehler beim Navigieren zum Blankett:", error)
+      setError(error.message || "Fehler beim Navigieren zum Blankett.")
     }
   }
 
@@ -284,7 +233,7 @@ export default function AdminDashboardPage() {
       // Aktualisiere die Liste der ausstehenden Änderungsanfragen
       setPendingTeamChanges(pendingTeamChanges.filter((change) => change.id !== selectedTeamChange.id))
       setSuccess("Teamänderungen erfolgreich genehmigt.")
-      setShowApproveDialog(false)
+      setShowRejectDialog(false)
       setSelectedTeamChange(null)
 
       // Erfolgsbenachrichtigung nach 3 Sekunden ausblenden
@@ -317,7 +266,7 @@ export default function AdminDashboardPage() {
       // Aktualisiere die Liste der ausstehenden Änderungsanfragen
       setPendingTeamChanges(pendingTeamChanges.filter((change) => change.id !== selectedTeamChange.id))
       setSuccess("Teamänderungen erfolgreich abgelehnt.")
-      setShowRejectDialog(false)
+      setShowApproveDialog(false)
       setSelectedTeamChange(null)
       setRejectReason("")
 
@@ -490,7 +439,7 @@ export default function AdminDashboardPage() {
               <CardHeader>
                 <CardTitle className="text-xl">Ausstehende Blanketts</CardTitle>
                 <CardDescription>
-                  Hier können Sie Blanketts genehmigen oder ablehnen, die von Trainern eingereicht wurden.
+                  Hier können Sie Blanketts verwalten, die von Trainern gespeichert wurden.
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -499,7 +448,7 @@ export default function AdminDashboardPage() {
                     <FileText className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                     <h3 className="text-lg font-medium">Keine ausstehenden Blanketts</h3>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Derzeit gibt es keine Blanketts, die auf Genehmigung warten.
+                      Derzeit gibt es keine Blanketts, die auf Bearbeitung warten.
                     </p>
                   </div>
                 ) : (
@@ -516,7 +465,7 @@ export default function AdminDashboardPage() {
                             <div className="flex items-center mt-1">
                               <Clock className="h-3 w-3 mr-1 text-muted-foreground" />
                               <span className="text-xs text-muted-foreground">
-                                Eingereicht am: {formatDateTime(blankett.eingereicht_am)}
+                                Gespeichert am: {formatDateTime(blankett.eingereicht_am || blankett.updated_at)}
                               </span>
                             </div>
                             {blankett.team?.trainer && (
@@ -532,6 +481,17 @@ export default function AdminDashboardPage() {
                                 </span>
                               </div>
                             )}
+                            <div className="flex items-center gap-2 mt-2">
+                              <Badge variant={blankett.status === "eingereicht" ? "secondary" : "outline"}>
+                                {blankett.status === "eingereicht" ? "Eingereicht" : "Entwurf"}
+                              </Badge>
+                              {blankett.is_locked && (
+                                <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                                  <Lock className="h-3 w-3 mr-1" />
+                                  Gesperrt
+                                </Badge>
+                              )}
+                            </div>
                           </div>
                           <div className="flex gap-2">
                             <Button
@@ -540,24 +500,7 @@ export default function AdminDashboardPage() {
                               asChild
                               className="bg-background/50 hover:bg-background/80"
                             >
-                              <Link href={`/blanketts/${blankett.id}`}>Details</Link>
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/20"
-                              onClick={() => handleRejectBlankett(blankett.id)}
-                            >
-                              <ThumbsDown className="mr-2 h-4 w-4" />
-                              Ablehnen
-                            </Button>
-                            <Button
-                              size="sm"
-                              className="bg-green-600 hover:bg-green-700"
-                              onClick={() => handleApproveBlankett(blankett.id)}
-                            >
-                              <ThumbsUp className="mr-2 h-4 w-4" />
-                              Genehmigen
+                              <Link href={`/admin/blanketts/${blankett.id}`}>Verwalten</Link>
                             </Button>
                           </div>
                         </div>
@@ -665,11 +608,11 @@ export default function AdminDashboardPage() {
                           </div>
                           <div className="flex gap-2">
                             <Dialog
-                              open={showRejectDialog && selectedTeamChange?.id === change.id}
+                              open={showApproveDialog && selectedTeamChange?.id === change.id}
                               onOpenChange={(open) => {
                                 if (!open) {
                                   setSelectedTeamChange(null)
-                                  setShowRejectDialog(false)
+                                  setShowApproveDialog(false)
                                 }
                               }}
                             >
@@ -680,7 +623,7 @@ export default function AdminDashboardPage() {
                                   className="bg-destructive/10 text-destructive border-destructive/20 hover:bg-destructive/20"
                                   onClick={() => {
                                     setSelectedTeamChange(change)
-                                    setShowRejectDialog(true)
+                                    setShowApproveDialog(true)
                                   }}
                                 >
                                   <ThumbsDown className="mr-2 h-4 w-4" />
@@ -711,7 +654,7 @@ export default function AdminDashboardPage() {
                                     variant="outline"
                                     onClick={() => {
                                       setSelectedTeamChange(null)
-                                      setShowRejectDialog(false)
+                                      setShowApproveDialog(false)
                                     }}
                                   >
                                     Abbrechen
@@ -728,11 +671,11 @@ export default function AdminDashboardPage() {
                             </Dialog>
 
                             <Dialog
-                              open={showApproveDialog && selectedTeamChange?.id === change.id}
+                              open={showRejectDialog && selectedTeamChange?.id === change.id}
                               onOpenChange={(open) => {
                                 if (!open) {
                                   setSelectedTeamChange(null)
-                                  setShowApproveDialog(false)
+                                  setShowRejectDialog(false)
                                 }
                               }}
                             >
@@ -742,7 +685,7 @@ export default function AdminDashboardPage() {
                                   className="bg-green-600 hover:bg-green-700"
                                   onClick={() => {
                                     setSelectedTeamChange(change)
-                                    setShowApproveDialog(true)
+                                    setShowRejectDialog(true)
                                   }}
                                 >
                                   <ThumbsUp className="mr-2 h-4 w-4" />
@@ -762,7 +705,7 @@ export default function AdminDashboardPage() {
                                     variant="outline"
                                     onClick={() => {
                                       setSelectedTeamChange(null)
-                                      setShowApproveDialog(false)
+                                      setShowRejectDialog(false)
                                     }}
                                   >
                                     Abbrechen
@@ -795,37 +738,52 @@ export default function AdminDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {recentActivities.map((activity) => (
-                    <div
-                      key={activity.id}
-                      className="p-4 rounded-lg border border-border/50 bg-card/80 hover:bg-card/90 transition-colors"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="bg-primary/10 rounded-full p-2">
-                          {activity.type === "blankett_submitted" && <FileText className="h-5 w-5 text-primary" />}
-                          {activity.type === "team_created" && <Users className="h-5 w-5 text-primary" />}
-                          {activity.type === "match_updated" && <Trophy className="h-5 w-5 text-primary" />}
-                          {activity.type === "player_added" && <Users className="h-5 w-5 text-primary" />}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex justify-between">
-                            <h3 className="font-medium">
-                              {activity.type === "blankett_submitted" &&
-                                `${activity.team} hat ein Blankett für ${activity.tournament} eingereicht`}
-                              {activity.type === "team_created" &&
-                                `${activity.user} hat das Team ${activity.team} erstellt`}
-                              {activity.type === "match_updated" &&
-                                `Spiel ${activity.match} im Turnier ${activity.tournament} wurde aktualisiert`}
-                              {activity.type === "player_added" &&
-                                `Spieler ${activity.player} wurde zum Team ${activity.team} hinzugefügt`}
-                            </h3>
-                            <span className="text-xs text-muted-foreground">{formatTimeAgo(activity.timestamp)}</span>
+                  {recentActivities.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Clock className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-medium">Keine Aktivitäten</h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Es wurden noch keine Aktivitäten aufgezeichnet.
+                      </p>
+                    </div>
+                  ) : (
+                    recentActivities.map((activity) => (
+                      <div
+                        key={activity.id}
+                        className="p-4 rounded-lg border border-border/50 bg-card/80 hover:bg-card/90 transition-colors"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="bg-primary/10 rounded-full p-2">
+                            {activity.type === "blankett_saved" && <FileText className="h-5 w-5 text-primary" />}
+                            {activity.type === "team_created" && <Users className="h-5 w-5 text-primary" />}
+                            {activity.type === "match_updated" && <Trophy className="h-5 w-5 text-primary" />}
+                            {activity.type === "player_added" && <Users className="h-5 w-5 text-primary" />}
                           </div>
-                          <p className="text-sm text-muted-foreground mt-1">{formatDateTime(activity.timestamp)}</p>
+                          <div className="flex-1">
+                            <div className="flex justify-between">
+                              <h3 className="font-medium">{activity.message}</h3>
+                              <span className="text-xs text-muted-foreground">
+                                {formatTimeAgo(activity.created_at)}
+                              </span>
+                            </div>
+                            <p className="text-sm text-muted-foreground mt-1">{formatDateTime(activity.created_at)}</p>
+                            {activity.blankett_id && (
+                              <div className="mt-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  asChild
+                                  className="bg-background/50 hover:bg-background/80"
+                                >
+                                  <Link href={`/admin/blanketts/${activity.blankett_id}`}>Blankett anzeigen</Link>
+                                </Button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </CardContent>
               <CardFooter>

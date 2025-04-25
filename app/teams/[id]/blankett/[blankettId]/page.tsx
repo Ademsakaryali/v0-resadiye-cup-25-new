@@ -24,12 +24,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   ArrowLeft,
   Calendar,
   Clock,
   FileText,
-  Send,
   Plus,
   Trash2,
   Save,
@@ -71,6 +71,14 @@ export default function BlankettDetailPage() {
     seconds: number
     expired: boolean
   } | null>(null)
+
+  // Neue Felder für die Erstellung eines neuen Spielers
+  const [neuerVorname, setNeuerVorname] = useState<string>("")
+  const [neuerNachname, setNeuerNachname] = useState<string>("")
+  const [neuesGeburtsdatum, setNeuesGeburtsdatum] = useState<string>("")
+  const [neueTrikotNummer, setNeueTrikotNummer] = useState<string>("")
+  const [neuePosition, setNeuePosition] = useState<string>("")
+  const [addDialogTab, setAddDialogTab] = useState<string>("existierend")
 
   useEffect(() => {
     const fetchData = async () => {
@@ -280,6 +288,99 @@ export default function BlankettDetailPage() {
     }
   }
 
+  const handleAddNeuerSpieler = async () => {
+    if (!neuerVorname || !neuerNachname || !neuesGeburtsdatum || !neueTrikotNummer || !neuePosition || !blankett) {
+      setError("Bitte füllen Sie alle Felder aus.")
+      return
+    }
+
+    try {
+      setSaving(true)
+      setError(null)
+
+      // Prüfen, ob die Trikotnummer bereits vergeben ist
+      const trikotExists = blankettSpieler.some((s) => s.trikot_nummer.toString() === neueTrikotNummer)
+
+      if (trikotExists) {
+        setError("Diese Trikotnummer ist bereits vergeben.")
+        return
+      }
+
+      // Prüfen, ob die maximale Anzahl an Spielern erreicht ist
+      if (settings && blankettSpieler.length >= settings.max_spieler) {
+        setError(`Die maximale Anzahl von ${settings.max_spieler} Spielern ist erreicht.`)
+        return
+      }
+
+      // Alter berechnen für E-Mail
+      const geburtsdatum = new Date(neuesGeburtsdatum)
+      const heute = new Date()
+      let alter = heute.getFullYear() - geburtsdatum.getFullYear()
+      const m = heute.getMonth() - geburtsdatum.getMonth()
+      if (m < 0 || (m === 0 && heute.getDate() < geburtsdatum.getDate())) {
+        alter--
+      }
+
+      // E-Mail und Passwort generieren
+      const email = `${neuerVorname.toLowerCase()}${neuerNachname.toLowerCase()}${alter}@resadiyecup.com`
+      const passwort = `${neuerVorname.substring(0, 2).toLowerCase()}${neuerNachname.substring(0, 2).toLowerCase()}5454`
+
+      // Neuen Spieler erstellen - WICHTIG: password_hash direkt setzen
+      const { data: neuerSpielerData, error: neuerSpielerError } = await supabase
+        .from("users")
+        .insert({
+          vorname: neuerVorname,
+          nachname: neuerNachname,
+          email: email,
+          geburtsdatum: neuesGeburtsdatum,
+          rolle: "Spieler",
+          ist_aktiv: true,
+          password_hash: passwort, // Passwort direkt in password_hash speichern
+        })
+        .select()
+
+      if (neuerSpielerError) throw neuerSpielerError
+
+      // Spieler zum Blankett hinzufügen
+      const { data: blankettSpielerData, error: blankettSpielerError } = await supabase
+        .from("blankett_spieler")
+        .insert({
+          blankett_id: blankett.id,
+          spieler_id: neuerSpielerData[0].id,
+          trikot_nummer: Number.parseInt(neueTrikotNummer),
+          position: neuePosition,
+        })
+        .select(`
+        *,
+        spieler:spieler_id (*)
+      `)
+
+      if (blankettSpielerError) throw blankettSpielerError
+
+      // Blankett aktualisieren
+      await supabase.from("blankett_entries").update({ updated_at: new Date().toISOString() }).eq("id", blankett.id)
+
+      // Spielerliste aktualisieren
+      setBlankettSpieler([...blankettSpieler, blankettSpielerData[0]])
+
+      // Formular zurücksetzen
+      setNeuerVorname("")
+      setNeuerNachname("")
+      setNeuesGeburtsdatum("")
+      setNeueTrikotNummer("")
+      setNeuePosition("")
+      setShowAddDialog(false)
+
+      setSuccess("Neuer Spieler erfolgreich erstellt und hinzugefügt.")
+      setTimeout(() => setSuccess(null), 3000)
+    } catch (error: any) {
+      console.error("Fehler beim Erstellen des neuen Spielers:", error)
+      setError(error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const handleEditSpieler = (spieler: BlankettSpieler) => {
     setEditingSpieler(spieler)
     setTrikotNummer(spieler.trikot_nummer.toString())
@@ -399,11 +500,36 @@ export default function BlankettDetailPage() {
       const { error } = await supabase
         .from("blankett_entries")
         .update({
+          status: blankett.status === "entwurf" ? "eingereicht" : blankett.status, // Automatisch auf "eingereicht" setzen, wenn es ein Entwurf war
           updated_at: new Date().toISOString(),
         })
         .eq("id", blankett.id)
 
       if (error) throw error
+
+      // Blankett-Status aktualisieren, wenn es ein Entwurf war
+      if (blankett.status === "entwurf") {
+        setBlankett({
+          ...blankett,
+          status: "eingereicht",
+        })
+      }
+
+      // Benachrichtigung für Administratoren erstellen
+      if (user?.rolle !== "Admin") {
+        const { error: notificationError } = await supabase.from("notifications").insert({
+          user_id: null, // Für alle Admins
+          type: "blankett_saved",
+          message: `Team ${team?.name} hat ein Blankett für ${tournament?.name} gespeichert.`,
+          blankett_id: blankett.id,
+          is_read: false,
+          created_at: new Date().toISOString(),
+        })
+
+        if (notificationError) {
+          console.error("Fehler beim Erstellen der Benachrichtigung:", notificationError)
+        }
+      }
 
       setSuccess("Blankett erfolgreich gespeichert.")
       setTimeout(() => setSuccess(null), 3000)
@@ -506,13 +632,22 @@ export default function BlankettDetailPage() {
 
   // Prüfen, ob das Blankett bearbeitet werden kann
   // Für Administratoren immer bearbeitbar, für Trainer nur wenn es ein Entwurf oder abgelehnt ist
-  const isEditable = user?.rolle === "Admin" || blankett.status === "entwurf" || blankett.status === "abgelehnt"
+  let isEditable = user?.rolle === "Admin" || blankett.status === "entwurf" || blankett.status === "abgelehnt"
 
   // Prüfen, ob die Frist abgelaufen ist
   const isFristAbgelaufen = countdown?.expired || false
 
   // Prüfen, ob der Benutzer ein Administrator ist
   const isAdmin = user?.rolle === "Admin"
+
+  // Ändern Sie die isEditable-Bedingung, um Trainern zu erlauben, auch genehmigte Blanketts zu bearbeiten,
+  // solange die Frist nicht abgelaufen ist
+  isEditable =
+    user?.rolle === "Admin" ||
+    blankett.status === "entwurf" ||
+    blankett.status === "abgelehnt" ||
+    blankett.status === "eingereicht" ||
+    (blankett.status === "genehmigt" && !isFristAbgelaufen)
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
@@ -571,6 +706,16 @@ export default function BlankettDetailPage() {
           <AlertTitle>Administrator-Modus</AlertTitle>
           <AlertDescription>
             Als Administrator können Sie dieses Blankett bearbeiten, auch wenn es bereits eingereicht wurde.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {!isAdmin && blankett.status === "genehmigt" && !isFristAbgelaufen && (
+        <Alert className="mb-6 border-green-600 text-green-600 bg-green-50 dark:bg-green-900/20">
+          <CheckCircle className="h-4 w-4" />
+          <AlertTitle>Genehmigtes Blankett</AlertTitle>
+          <AlertDescription>
+            Dieses Blankett wurde bereits genehmigt, kann aber noch bis zum Ablauf der Frist bearbeitet werden.
           </AlertDescription>
         </Alert>
       )}
@@ -666,85 +811,185 @@ export default function BlankettDetailPage() {
                   Spieler hinzufügen
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="sm:max-w-[600px]">
                 <DialogHeader>
                   <DialogTitle>Spieler hinzufügen</DialogTitle>
                   <DialogDescription>
-                    Wählen Sie einen Spieler aus und weisen Sie ihm eine Trikotnummer und Position zu.
+                    Fügen Sie einen existierenden Spieler hinzu oder erstellen Sie einen neuen Spieler.
                   </DialogDescription>
                 </DialogHeader>
 
-                <div className="grid gap-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="spieler-dialog">Spieler</Label>
-                    <Select value={selectedSpieler} onValueChange={setSelectedSpieler}>
-                      <SelectTrigger id="spieler-dialog">
-                        <SelectValue placeholder="Spieler auswählen" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-[300px]">
-                        {verfuegbareSpieler.length === 0 ? (
-                          <div className="p-2 text-center text-muted-foreground">Keine verfügbaren Spieler</div>
-                        ) : (
-                          verfuegbareSpieler.map((spieler) => (
-                            <SelectItem key={spieler.id} value={spieler.id}>
-                              <div className="flex items-center gap-2">
-                                <Avatar className="h-6 w-6">
-                                  <AvatarImage src={spieler.profilbild_url || ""} alt={spieler.vorname} />
-                                  <AvatarFallback>
-                                    {getInitials(`${spieler.vorname} ${spieler.nachname}`)}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <span>
-                                  {spieler.vorname} {spieler.nachname}
-                                </span>
-                              </div>
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <Tabs value={addDialogTab} onValueChange={setAddDialogTab} className="mt-4">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="existierend">Existierender Spieler</TabsTrigger>
+                    <TabsTrigger value="neu">Neuer Spieler</TabsTrigger>
+                  </TabsList>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="trikot-dialog">Trikotnummer</Label>
-                      <Input
-                        id="trikot-dialog"
-                        type="number"
-                        min="1"
-                        max="99"
-                        value={trikotNummer}
-                        onChange={(e) => setTrikotNummer(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="position-dialog">Position</Label>
-                      <Select value={position} onValueChange={setPosition}>
-                        <SelectTrigger id="position-dialog">
-                          <SelectValue placeholder="Position auswählen" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Torwart">Torwart</SelectItem>
-                          <SelectItem value="Abwehr">Abwehr</SelectItem>
-                          <SelectItem value="Mittelfeld">Mittelfeld</SelectItem>
-                          <SelectItem value="Sturm">Sturm</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
+                  <TabsContent value="existierend" className="mt-4">
+                    <div className="grid gap-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="spieler-dialog">Spieler</Label>
+                        <Select value={selectedSpieler} onValueChange={setSelectedSpieler}>
+                          <SelectTrigger id="spieler-dialog">
+                            <SelectValue placeholder="Spieler auswählen" />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-[300px]">
+                            {verfuegbareSpieler.length === 0 ? (
+                              <div className="p-2 text-center text-muted-foreground">Keine verfügbaren Spieler</div>
+                            ) : (
+                              verfuegbareSpieler.map((spieler) => (
+                                <SelectItem key={spieler.id} value={spieler.id}>
+                                  <div className="flex items-center gap-2">
+                                    <Avatar className="h-6 w-6">
+                                      <AvatarImage src={spieler.profilbild_url || ""} alt={spieler.vorname} />
+                                      <AvatarFallback>
+                                        {getInitials(`${spieler.vorname} ${spieler.nachname}`)}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <span>
+                                      {spieler.vorname} {spieler.nachname}
+                                    </span>
+                                  </div>
+                                </SelectItem>
+                              ))
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setShowAddDialog(false)}>
-                    Abbrechen
-                  </Button>
-                  <Button
-                    onClick={handleAddSpieler}
-                    disabled={!selectedSpieler || !trikotNummer || !position || saving}
-                  >
-                    {saving ? "Wird hinzugefügt..." : "Hinzufügen"}
-                  </Button>
-                </DialogFooter>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="trikot-dialog">Trikotnummer</Label>
+                          <Input
+                            id="trikot-dialog"
+                            type="number"
+                            min="1"
+                            max="99"
+                            value={trikotNummer}
+                            onChange={(e) => setTrikotNummer(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="position-dialog">Position</Label>
+                          <Select value={position} onValueChange={setPosition}>
+                            <SelectTrigger id="position-dialog">
+                              <SelectValue placeholder="Position auswählen" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Torwart">Torwart</SelectItem>
+                              <SelectItem value="Abwehr">Abwehr</SelectItem>
+                              <SelectItem value="Mittelfeld">Mittelfeld</SelectItem>
+                              <SelectItem value="Sturm">Sturm</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+                        Abbrechen
+                      </Button>
+                      <Button
+                        onClick={handleAddSpieler}
+                        disabled={!selectedSpieler || !trikotNummer || !position || saving}
+                      >
+                        {saving ? "Wird hinzugefügt..." : "Hinzufügen"}
+                      </Button>
+                    </DialogFooter>
+                  </TabsContent>
+
+                  <TabsContent value="neu" className="mt-4">
+                    <div className="grid gap-4 py-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="vorname-neu">Vorname</Label>
+                          <Input
+                            id="vorname-neu"
+                            value={neuerVorname}
+                            onChange={(e) => setNeuerVorname(e.target.value)}
+                            placeholder="Max"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="nachname-neu">Nachname</Label>
+                          <Input
+                            id="nachname-neu"
+                            value={neuerNachname}
+                            onChange={(e) => setNeuerNachname(e.target.value)}
+                            placeholder="Mustermann"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="geburtsdatum-neu">Geburtsdatum</Label>
+                        <Input
+                          id="geburtsdatum-neu"
+                          type="date"
+                          value={neuesGeburtsdatum}
+                          onChange={(e) => setNeuesGeburtsdatum(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="trikot-neu">Trikotnummer</Label>
+                          <Input
+                            id="trikot-neu"
+                            type="number"
+                            min="1"
+                            max="99"
+                            value={neueTrikotNummer}
+                            onChange={(e) => setNeueTrikotNummer(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="position-neu">Position</Label>
+                          <Select value={neuePosition} onValueChange={setNeuePosition}>
+                            <SelectTrigger id="position-neu">
+                              <SelectValue placeholder="Position auswählen" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Torwart">Torwart</SelectItem>
+                              <SelectItem value="Abwehr">Abwehr</SelectItem>
+                              <SelectItem value="Mittelfeld">Mittelfeld</SelectItem>
+                              <SelectItem value="Sturm">Sturm</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="bg-secondary/20 p-3 rounded-md text-sm">
+                        <p className="font-medium mb-1">Hinweis:</p>
+                        <p>E-Mail und Passwort werden automatisch generiert:</p>
+                        <ul className="list-disc list-inside mt-1 space-y-1">
+                          <li>E-Mail: vornamennachnamealter@resadiyecup.com</li>
+                          <li>Passwort: erste 2 Buchstaben Vorname + erste 2 Buchstaben Nachname + 5454</li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+                        Abbrechen
+                      </Button>
+                      <Button
+                        onClick={handleAddNeuerSpieler}
+                        disabled={
+                          !neuerVorname ||
+                          !neuerNachname ||
+                          !neuesGeburtsdatum ||
+                          !neueTrikotNummer ||
+                          !neuePosition ||
+                          saving
+                        }
+                      >
+                        {saving ? "Wird erstellt..." : "Spieler erstellen & hinzufügen"}
+                      </Button>
+                    </DialogFooter>
+                  </TabsContent>
+                </Tabs>
               </DialogContent>
             </Dialog>
           )}
@@ -915,63 +1160,14 @@ export default function BlankettDetailPage() {
         </Button>
 
         {isEditable && (!isFristAbgelaufen || isAdmin) && (
-          <>
-            <Button
-              onClick={handleSaveBlankett}
-              variant="outline"
-              disabled={saving}
-              className="border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800"
-            >
-              <Save className="mr-2 h-4 w-4" />
-              Speichern
-            </Button>
-
-            <Dialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
-              <DialogTrigger asChild>
-                <Button
-                  disabled={blankettSpieler.length < (settings?.min_spieler || 0) || submitting}
-                  className="bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-700 hover:to-primary-600"
-                >
-                  <Send className="mr-2 h-4 w-4" />
-                  Blankett einreichen
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Blankett einreichen</DialogTitle>
-                  <DialogDescription>
-                    Sind Sie sicher, dass Sie das Blankett einreichen möchten? Nach dem Einreichen kann es nicht mehr
-                    bearbeitet werden.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="py-4">
-                  <div className="rounded-md bg-secondary/20 p-3 text-sm">
-                    <p>
-                      <strong>Team:</strong> {team.name}
-                    </p>
-                    <p>
-                      <strong>Turnier:</strong> {tournament.name}
-                    </p>
-                    <p>
-                      <strong>Spieler:</strong> {blankettSpieler.length} von {settings?.max_spieler || "?"}
-                    </p>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setShowSubmitDialog(false)}>
-                    Abbrechen
-                  </Button>
-                  <Button
-                    onClick={handleSubmitBlankett}
-                    disabled={submitting}
-                    className="bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-700 hover:to-primary-600"
-                  >
-                    {submitting ? "Wird eingereicht..." : "Ja, einreichen"}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </>
+          <Button
+            onClick={handleSaveBlankett}
+            disabled={saving}
+            className="bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-700 hover:to-primary-600"
+          >
+            <Save className="mr-2 h-4 w-4" />
+            Blankett speichern
+          </Button>
         )}
       </div>
     </div>
