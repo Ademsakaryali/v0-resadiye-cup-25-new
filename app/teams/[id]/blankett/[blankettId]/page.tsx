@@ -60,6 +60,7 @@ export default function BlankettDetailPage() {
   const [position, setPosition] = useState<string>("")
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [showSubmitDialog, setShowSubmitDialog] = useState(false)
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [showEditDialog, setShowEditDialog] = useState(false)
   const [editingSpieler, setEditingSpieler] = useState<BlankettSpieler | null>(null)
@@ -79,7 +80,7 @@ export default function BlankettDetailPage() {
   const [neuePosition, setNeuePosition] = useState<string>("")
   const [addDialogTab, setAddDialogTab] = useState<string>("existierend")
 
-  // Fügen Sie neue Zustandsvariablen hinzu, direkt nach den bestehenden Zustandsvariablen
+  // Neue Zustandsvariablen für die Spielerbearbeitung
   const [showEditPlayerDialog, setShowEditPlayerDialog] = useState(false)
   const [editingPlayer, setEditingPlayer] = useState<any>(null)
   const [editPlayerVorname, setEditPlayerVorname] = useState("")
@@ -87,6 +88,68 @@ export default function BlankettDetailPage() {
   const [searchResults, setSearchResults] = useState<any[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [showSearchResults, setShowSearchResults] = useState(false)
+
+  // Spielersuche-Funktion mit useCallback
+  const searchPlayers = useCallback(
+    async (vorname: string, nachname: string) => {
+      if (!vorname && !nachname) {
+        setSearchResults([])
+        setShowSearchResults(false)
+        return
+      }
+
+      try {
+        setIsSearching(true)
+
+        let query = supabase
+          .from("users")
+          .select(`
+            *,
+            team_spieler:team_spieler(
+              team:team_id(
+                id,
+                name,
+                logo_url
+              )
+            )
+          `)
+          .eq("rolle", "Spieler")
+          .eq("ist_aktiv", true)
+
+        if (vorname) {
+          query = query.ilike("vorname", `%${vorname}%`)
+        }
+
+        if (nachname) {
+          query = query.ilike("nachname", `%${nachname}%`)
+        }
+
+        const { data, error } = await query.limit(5)
+
+        if (error) throw error
+
+        // Daten verarbeiten, um das aktuelle Team zu extrahieren
+        const processedData =
+          data?.map((player) => {
+            const currentTeam =
+              player.team_spieler && player.team_spieler.length > 0 ? player.team_spieler[0].team : null
+
+            return {
+              ...player,
+              currentTeam,
+            }
+          }) || []
+
+        setSearchResults(processedData)
+        setShowSearchResults(true)
+      } catch (error: any) {
+        console.error("Fehler bei der Spielersuche:", error)
+      } finally {
+        setIsSearching(false)
+      }
+    },
+    [supabase],
+  )
 
   useEffect(() => {
     const fetchData = async () => {
@@ -230,6 +293,17 @@ export default function BlankettDetailPage() {
 
     return () => clearInterval(interval)
   }, [settings])
+
+  // Spielersuche-Effekt
+  useEffect(() => {
+    const delaySearch = setTimeout(() => {
+      if (addDialogTab === "neu" && (neuerVorname || neuerNachname)) {
+        searchPlayers(neuerVorname, neuerNachname)
+      }
+    }, 500)
+
+    return () => clearTimeout(delaySearch)
+  }, [neuerVorname, neuerNachname, addDialogTab, searchPlayers])
 
   const handleAddSpieler = async () => {
     if (!selectedSpieler || !trikotNummer || !position || !blankett) {
@@ -378,6 +452,8 @@ export default function BlankettDetailPage() {
       setNeueTrikotNummer("")
       setNeuePosition("")
       setShowAddDialog(false)
+      setSearchResults([])
+      setShowSearchResults(false)
 
       setSuccess("Neuer Spieler erfolgreich erstellt und hinzugefügt.")
       setTimeout(() => setSuccess(null), 3000)
@@ -567,70 +643,51 @@ export default function BlankettDetailPage() {
     }
   }
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return "Unbekannt"
-    const date = new Date(dateString)
-    return new Intl.DateTimeFormat("de-DE", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    }).format(date)
+  const handleSubmitBlankett = async () => {
+    if (!blankett || !settings) return
+
+    // Prüfen, ob die Mindestanzahl an Spielern erreicht ist
+    if (settings.min_spieler > blankettSpieler.length) {
+      setError(`Es müssen mindestens ${settings.min_spieler} Spieler hinzugefügt werden.`)
+      return
+    }
+
+    try {
+      setSubmitting(true)
+      setError(null)
+
+      // Blankett einreichen
+      const { error } = await supabase
+        .from("blankett_entries")
+        .update({
+          status: "eingereicht",
+          eingereicht_am: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", blankett.id)
+
+      if (error) throw error
+
+      // Blankett aktualisieren
+      setBlankett({
+        ...blankett,
+        status: "eingereicht",
+        eingereicht_am: new Date().toISOString(),
+      })
+
+      setSuccess("Blankett erfolgreich eingereicht.")
+      setShowSubmitDialog(false)
+      setTimeout(() => {
+        router.push(`/teams/${team?.id}`)
+      }, 2000)
+    } catch (error: any) {
+      console.error("Fehler beim Einreichen des Blanketts:", error)
+      setError(error.message)
+    } finally {
+      setSubmitting(false)
+    }
   }
 
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-  }
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-[calc(100vh-8rem)]">
-        <LoadingSpinner />
-      </div>
-    )
-  }
-
-  if (!blankett || !team || !tournament) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="text-center py-12">
-          <h3 className="text-lg font-medium">Blankett nicht gefunden</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Das angeforderte Blankett existiert nicht oder wurde gelöscht.
-          </p>
-          <div className="mt-6">
-            <Button asChild>
-              <Link href="/teams">Zurück zur Teamübersicht</Link>
-            </Button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // Prüfen, ob das Blankett bearbeitet werden kann
-  // Für Administratoren immer bearbeitbar, für Trainer nur wenn es ein Entwurf oder abgelehnt ist
-  let isEditable = user?.rolle === "Admin" || blankett.status === "entwurf" || blankett.status === "abgelehnt"
-
-  // Prüfen, ob die Frist abgelaufen ist
-  const isFristAbgelaufen = countdown?.expired || false
-
-  // Prüfen, ob der Benutzer ein Administrator ist
-  const isAdmin = user?.rolle === "Admin"
-
-  // Ändern Sie die isEditable-Bedingung, um Trainern zu erlauben, auch genehmigte Blanketts zu bearbeiten,
-  // solange die Frist nicht abgelaufen ist
-  isEditable =
-    user?.rolle === "Admin" ||
-    blankett.status === "entwurf" ||
-    blankett.status === "abgelehnt" ||
-    blankett.status === "eingereicht" ||
-    (blankett.status === "genehmigt" && !isFristAbgelaufen)
-
-  // Fügen Sie diese neue Funktion hinzu, nach den bestehenden Funktionen und vor dem return-Statement
   const handleEditPlayerDetails = (spieler: any) => {
     setEditingPlayer(spieler.spieler)
     setEditPlayerVorname(spieler.spieler?.vorname || "")
@@ -692,68 +749,6 @@ export default function BlankettDetailPage() {
       setSaving(false)
     }
   }
-
-  // Fügen Sie diese Funktion für die Spielersuche hinzu
-  const searchPlayers = useCallback(
-    async (vorname: string, nachname: string) => {
-      if (!vorname && !nachname) {
-        setSearchResults([])
-        setShowSearchResults(false)
-        return
-      }
-
-      try {
-        setIsSearching(true)
-
-        let query = supabase
-          .from("users")
-          .select(`
-          *,
-          team_spieler:team_spieler(
-            team:team_id(
-              id,
-              name,
-              logo_url
-            )
-          )
-        `)
-          .eq("rolle", "Spieler")
-          .eq("ist_aktiv", true)
-
-        if (vorname) {
-          query = query.ilike("vorname", `%${vorname}%`)
-        }
-
-        if (nachname) {
-          query = query.ilike("nachname", `%${nachname}%`)
-        }
-
-        const { data, error } = await query.limit(5)
-
-        if (error) throw error
-
-        // Daten verarbeiten, um das aktuelle Team zu extrahieren
-        const processedData =
-          data?.map((player) => {
-            const currentTeam =
-              player.team_spieler && player.team_spieler.length > 0 ? player.team_spieler[0].team : null
-
-            return {
-              ...player,
-              currentTeam,
-            }
-          }) || []
-
-        setSearchResults(processedData)
-        setShowSearchResults(true)
-      } catch (error: any) {
-        console.error("Fehler bei der Spielersuche:", error)
-      } finally {
-        setIsSearching(false)
-      }
-    },
-    [supabase],
-  )
 
   const handleTransferPlayer = async (player: any) => {
     if (!blankett) return
@@ -822,16 +817,68 @@ export default function BlankettDetailPage() {
     }
   }
 
-  // Fügen Sie useEffect für die Spielersuche hinzu
-  useEffect(() => {
-    const delaySearch = setTimeout(() => {
-      if (addDialogTab === "neu") {
-        searchPlayers(neuerVorname, neuerNachname)
-      }
-    }, 500)
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "Unbekannt"
+    const date = new Date(dateString)
+    return new Intl.DateTimeFormat("de-DE", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(date)
+  }
 
-    return () => clearTimeout(delaySearch)
-  }, [neuerVorname, neuerNachname, addDialogTab, searchPlayers])
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+  }
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-[calc(100vh-8rem)]">
+        <LoadingSpinner />
+      </div>
+    )
+  }
+
+  if (!blankett || !team || !tournament) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="text-center py-12">
+          <h3 className="text-lg font-medium">Blankett nicht gefunden</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Das angeforderte Blankett existiert nicht oder wurde gelöscht.
+          </p>
+          <div className="mt-6">
+            <Button asChild>
+              <Link href="/teams">Zurück zur Teamübersicht</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Prüfen, ob das Blankett bearbeitet werden kann
+  // Für Administratoren immer bearbeitbar, für Trainer nur wenn es ein Entwurf oder abgelehnt ist
+  let isEditable = user?.rolle === "Admin" || blankett.status === "entwurf" || blankett.status === "abgelehnt"
+
+  // Prüfen, ob die Frist abgelaufen ist
+  const isFristAbgelaufen = countdown?.expired || false
+
+  // Prüfen, ob der Benutzer ein Administrator ist
+  const isAdmin = user?.rolle === "Admin"
+
+  // Ändern Sie die isEditable-Bedingung, um Trainern zu erlauben, auch genehmigte Blanketts zu bearbeiten,
+  // solange die Frist nicht abgelaufen ist
+  isEditable =
+    user?.rolle === "Admin" ||
+    blankett.status === "entwurf" ||
+    blankett.status === "abgelehnt" ||
+    blankett.status === "eingereicht" ||
+    (blankett.status === "genehmigt" && !isFristAbgelaufen)
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
@@ -1133,7 +1180,8 @@ export default function BlankettDetailPage() {
                                           <img
                                             src={
                                               player.currentTeam.logo_url ||
-                                              "/placeholder.svg?height=30&width=30&query=soccer team"
+                                              "/placeholder.svg?height=30&width=30&query=soccer team" ||
+                                              "/placeholder.svg"
                                             }
                                             alt={player.currentTeam.name}
                                             className="h-full w-full object-contain"
