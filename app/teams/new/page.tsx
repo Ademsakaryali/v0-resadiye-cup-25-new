@@ -1,11 +1,5 @@
 "use client"
 
-import { AvatarFallback } from "@/components/ui/avatar"
-
-import { AvatarImage } from "@/components/ui/avatar"
-
-import { Avatar } from "@/components/ui/avatar"
-
 import type React from "react"
 
 import { useState, useEffect } from "react"
@@ -34,27 +28,59 @@ import {
 } from "@/components/ui/dialog"
 import { Switch } from "@/components/ui/switch"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useToast } from "@/components/ui/use-toast"
+
+// Typen für Trainer und Formulardaten
+interface Trainer {
+  id: string
+  vorname: string
+  nachname: string
+  rolle: string
+  team?: string
+  profile_image_url?: string
+}
+
+interface FormData {
+  name: string
+  beschreibung: string
+  trainer_id: string
+  ist_aktiv: boolean
+  logo_url: string
+}
+
+interface NewTrainerData {
+  email: string
+  vorname: string
+  nachname: string
+  telefonnummer: string
+  password: string
+}
 
 export default function NewTeamPage() {
-  const [formData, setFormData] = useState({
+  // State für Formulardaten
+  const [formData, setFormData] = useState<FormData>({
     name: "",
     beschreibung: "",
     trainer_id: "",
     ist_aktiv: true,
-    logo_url: "", // Geändert von logoFile zu logo_url
+    logo_url: "",
   })
-  const [trainers, setTrainers] = useState<
-    Array<{ id: string; vorname: string; nachname: string; rolle: string; team?: string; profile_image_url?: string }>
-  >([])
-  const [filteredTrainers, setFilteredTrainers] = useState<
-    Array<{ id: string; vorname: string; nachname: string; rolle: string; team?: string; profile_image_url?: string }>
-  >([])
+
+  // State für Trainer
+  const [trainers, setTrainers] = useState<Trainer[]>([])
+  const [filteredTrainers, setFilteredTrainers] = useState<Trainer[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [showAllUsers, setShowAllUsers] = useState(false)
+
+  // State für Fehler und Laden
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [isLoadingTrainers, setIsLoadingTrainers] = useState(true)
+
+  // State für neuen Trainer Dialog
   const [showNewTrainerDialog, setShowNewTrainerDialog] = useState(false)
-  const [newTrainerData, setNewTrainerData] = useState({
+  const [newTrainerData, setNewTrainerData] = useState<NewTrainerData>({
     email: "",
     vorname: "",
     nachname: "",
@@ -63,12 +89,17 @@ export default function NewTeamPage() {
   })
   const [newTrainerError, setNewTrainerError] = useState<string | null>(null)
   const [isCreatingTrainer, setIsCreatingTrainer] = useState(false)
+
+  // Hooks
   const router = useRouter()
   const { user } = useAuth()
   const supabase = getSupabaseClient()
+  const { toast } = useToast()
 
+  // Trainer laden
   useEffect(() => {
     const fetchTrainers = async () => {
+      setIsLoadingTrainers(true)
       try {
         // Trainer mit Team-Informationen abrufen
         const query = supabase
@@ -109,12 +140,20 @@ export default function NewTeamPage() {
         setFilteredTrainers(trainersWithTeams || [])
       } catch (error) {
         console.error("Fehler beim Laden der Trainer:", error)
+        toast({
+          title: "Fehler",
+          description: "Trainer konnten nicht geladen werden. Bitte versuchen Sie es später erneut.",
+          variant: "destructive",
+        })
+      } finally {
+        setIsLoadingTrainers(false)
       }
     }
 
     fetchTrainers()
-  }, [supabase, showAllUsers])
+  }, [supabase, showAllUsers, toast])
 
+  // Trainer filtern bei Sucheingabe
   useEffect(() => {
     if (searchQuery.trim() === "") {
       setFilteredTrainers(trainers)
@@ -128,6 +167,7 @@ export default function NewTeamPage() {
     }
   }, [searchQuery, trainers])
 
+  // Event Handler
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
@@ -146,6 +186,7 @@ export default function NewTeamPage() {
     setNewTrainerData((prev) => ({ ...prev, [name]: value }))
   }
 
+  // Neuen Trainer erstellen
   const handleCreateTrainer = async () => {
     setNewTrainerError(null)
     setIsCreatingTrainer(true)
@@ -154,6 +195,12 @@ export default function NewTeamPage() {
       // Validierung
       if (!newTrainerData.email || !newTrainerData.vorname || !newTrainerData.nachname || !newTrainerData.password) {
         throw new Error("Bitte füllen Sie alle Pflichtfelder aus.")
+      }
+
+      // E-Mail-Format validieren
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(newTrainerData.email)) {
+        throw new Error("Bitte geben Sie eine gültige E-Mail-Adresse ein.")
       }
 
       // Prüfen, ob die E-Mail bereits existiert
@@ -173,35 +220,33 @@ export default function NewTeamPage() {
       })
 
       if (authError) throw authError
+      if (!authData.user?.id) throw new Error("Benutzer konnte nicht erstellt werden.")
 
       // Benutzerdaten in der users-Tabelle speichern
-      const { data: userData, error: userError } = await supabase
-        .from("users")
-        .insert([
-          {
-            id: authData.user?.id,
-            email: newTrainerData.email,
-            vorname: newTrainerData.vorname,
-            nachname: newTrainerData.nachname,
-            telefonnummer: newTrainerData.telefonnummer || null,
-            rolle: "Trainer",
-            ist_aktiv: true,
-          },
-        ])
-        .select()
+      const { error: userError } = await supabase.from("users").insert([
+        {
+          id: authData.user.id,
+          email: newTrainerData.email,
+          vorname: newTrainerData.vorname,
+          nachname: newTrainerData.nachname,
+          telefonnummer: newTrainerData.telefonnummer || null,
+          rolle: "Trainer",
+          ist_aktiv: true,
+        },
+      ])
 
       if (userError) throw userError
 
       // Trainer zur Liste hinzufügen und auswählen
-      const newTrainer = {
-        id: authData.user?.id || "",
+      const newTrainer: Trainer = {
+        id: authData.user.id,
         vorname: newTrainerData.vorname,
         nachname: newTrainerData.nachname,
         rolle: "Trainer",
       }
 
-      setTrainers([...trainers, newTrainer])
-      setFilteredTrainers([...filteredTrainers, newTrainer])
+      setTrainers((prev) => [...prev, newTrainer])
+      setFilteredTrainers((prev) => [...prev, newTrainer])
       setFormData((prev) => ({ ...prev, trainer_id: newTrainer.id }))
 
       // Dialog schließen und Formular zurücksetzen
@@ -213,6 +258,11 @@ export default function NewTeamPage() {
         telefonnummer: "",
         password: "",
       })
+
+      toast({
+        title: "Erfolg",
+        description: "Trainer wurde erfolgreich erstellt.",
+      })
     } catch (err: any) {
       console.error("Fehler beim Erstellen des Trainers:", err)
       setNewTrainerError(err.message || "Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.")
@@ -221,6 +271,7 @@ export default function NewTeamPage() {
     }
   }
 
+  // Team erstellen
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -251,6 +302,11 @@ export default function NewTeamPage() {
         throw error
       }
 
+      toast({
+        title: "Erfolg",
+        description: "Team wurde erfolgreich erstellt.",
+      })
+
       router.push("/teams")
     } catch (err: any) {
       console.error("Fehler beim Erstellen des Teams:", err)
@@ -272,33 +328,35 @@ export default function NewTeamPage() {
 
   return (
     <RequireAuth allowedRoles={["Admin"]}>
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-6">
-          <Button variant="ghost" asChild className="mb-4">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        <div className="mb-4 sm:mb-6">
+          <Button variant="ghost" asChild className="mb-2 sm:mb-4 -ml-2">
             <Link href="/teams">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Zurück zur Teamübersicht
             </Link>
           </Button>
-          <h1 className="text-3xl font-bold">Neues Team erstellen</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">Neues Team erstellen</h1>
         </div>
 
         <Card className="border border-border/50 bg-card/50 backdrop-blur-sm">
-          <CardHeader>
+          <CardHeader className="px-4 sm:px-6 py-4 sm:py-6">
             <CardTitle>Team-Informationen</CardTitle>
             <CardDescription>Geben Sie die Informationen für das neue Team ein.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 sm:px-6">
             {error && (
               <Alert variant="destructive" className="mb-4">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Teamname *</Label>
+                  <Label htmlFor="name" className="font-medium">
+                    Teamname <span className="text-red-500">*</span>
+                  </Label>
                   <Input
                     id="name"
                     name="name"
@@ -306,23 +364,29 @@ export default function NewTeamPage() {
                     onChange={handleChange}
                     required
                     className="bg-background/50"
+                    placeholder="z.B. FC Bayern München"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="beschreibung">Beschreibung</Label>
+                  <Label htmlFor="beschreibung" className="font-medium">
+                    Beschreibung
+                  </Label>
                   <Textarea
                     id="beschreibung"
                     name="beschreibung"
                     value={formData.beschreibung}
                     onChange={handleChange}
-                    rows={4}
+                    rows={3}
                     className="bg-background/50"
+                    placeholder="Kurze Beschreibung des Teams"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="logo_url">Team-Logo URL</Label>
+                  <Label htmlFor="logo_url" className="font-medium">
+                    Team-Logo URL
+                  </Label>
                   <div className="flex gap-2">
                     <div className="relative flex-1">
                       <LinkIcon className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -336,18 +400,25 @@ export default function NewTeamPage() {
                       />
                     </div>
                   </div>
-                  {formData.logo_url && isValidUrl(formData.logo_url) && (
+                  {formData.logo_url && (
                     <div className="mt-2 flex justify-center">
-                      <div className="relative w-40 h-40 border rounded-md overflow-hidden">
-                        <Image
-                          src={formData.logo_url || "/placeholder.svg"}
-                          alt="Team-Logo Vorschau"
-                          fill
-                          className="object-contain"
-                          onError={() => {
-                            setError("Das Bild konnte nicht geladen werden. Bitte überprüfen Sie die URL.")
-                          }}
-                        />
+                      <div className="relative w-32 h-32 border rounded-md overflow-hidden bg-white">
+                        {isValidUrl(formData.logo_url) ? (
+                          <Image
+                            src={formData.logo_url || "/placeholder.svg"}
+                            alt="Team-Logo Vorschau"
+                            fill
+                            className="object-contain"
+                            onError={() => {
+                              setError("Das Bild konnte nicht geladen werden. Bitte überprüfen Sie die URL.")
+                              setFormData((prev) => ({ ...prev, logo_url: "" }))
+                            }}
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+                            Ungültige URL
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}
@@ -358,7 +429,9 @@ export default function NewTeamPage() {
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="trainer_id">Trainer</Label>
+                    <Label htmlFor="trainer_id" className="font-medium">
+                      Trainer
+                    </Label>
                     <div className="flex items-center space-x-2">
                       <Switch id="show-all-users" checked={showAllUsers} onCheckedChange={setShowAllUsers} />
                       <Label htmlFor="show-all-users" className="text-xs">
@@ -381,7 +454,7 @@ export default function NewTeamPage() {
                       <DialogTrigger asChild>
                         <Button variant="outline" className="shrink-0">
                           <Plus className="h-4 w-4 mr-2" />
-                          Neu
+                          <span className="hidden sm:inline">Neu</span>
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="sm:max-w-md">
@@ -398,9 +471,11 @@ export default function NewTeamPage() {
                           </Alert>
                         )}
                         <div className="grid gap-4 py-4">
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                              <Label htmlFor="vorname">Vorname *</Label>
+                              <Label htmlFor="vorname">
+                                Vorname <span className="text-red-500">*</span>
+                              </Label>
                               <Input
                                 id="vorname"
                                 name="vorname"
@@ -410,7 +485,9 @@ export default function NewTeamPage() {
                               />
                             </div>
                             <div className="space-y-2">
-                              <Label htmlFor="nachname">Nachname *</Label>
+                              <Label htmlFor="nachname">
+                                Nachname <span className="text-red-500">*</span>
+                              </Label>
                               <Input
                                 id="nachname"
                                 name="nachname"
@@ -421,7 +498,9 @@ export default function NewTeamPage() {
                             </div>
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="email">E-Mail *</Label>
+                            <Label htmlFor="email">
+                              E-Mail <span className="text-red-500">*</span>
+                            </Label>
                             <Input
                               id="email"
                               name="email"
@@ -438,10 +517,13 @@ export default function NewTeamPage() {
                               name="telefonnummer"
                               value={newTrainerData.telefonnummer}
                               onChange={handleNewTrainerChange}
+                              placeholder="+49 123 4567890"
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="password">Passwort *</Label>
+                            <Label htmlFor="password">
+                              Passwort <span className="text-red-500">*</span>
+                            </Label>
                             <Input
                               id="password"
                               name="password"
@@ -449,7 +531,9 @@ export default function NewTeamPage() {
                               value={newTrainerData.password}
                               onChange={handleNewTrainerChange}
                               required
+                              minLength={6}
                             />
+                            <p className="text-xs text-muted-foreground">Mindestens 6 Zeichen</p>
                           </div>
                         </div>
                         <DialogFooter>
@@ -472,13 +556,17 @@ export default function NewTeamPage() {
                   </div>
 
                   <div
-                    className="mt-2 border rounded-md divide-y trainer-scrollbar"
+                    className="mt-2 border rounded-md divide-y trainer-scrollbar bg-background/50"
                     style={{ maxHeight: "300px", overflowY: "auto" }}
                   >
-                    {filteredTrainers.length === 0 ? (
+                    {isLoadingTrainers ? (
+                      <div className="p-4 flex justify-center">
+                        <LoadingSpinner />
+                      </div>
+                    ) : filteredTrainers.length === 0 ? (
                       <div className="p-4 text-center text-muted-foreground">Keine Trainer gefunden</div>
                     ) : (
-                      filteredTrainers.slice(0, 5).map((trainer) => (
+                      filteredTrainers.map((trainer) => (
                         <div
                           key={trainer.id}
                           className={`flex items-center p-3 cursor-pointer hover:bg-muted/30 ${
@@ -486,8 +574,8 @@ export default function NewTeamPage() {
                           }`}
                           onClick={() => handleSelectChange("trainer_id", trainer.id)}
                         >
-                          <div className="flex items-center flex-1">
-                            <Avatar className="h-8 w-8 mr-3">
+                          <div className="flex items-center flex-1 min-w-0">
+                            <Avatar className="h-8 w-8 mr-3 flex-shrink-0">
                               <AvatarImage
                                 src={trainer.profile_image_url || undefined}
                                 alt={`${trainer.vorname} ${trainer.nachname}`}
@@ -496,21 +584,21 @@ export default function NewTeamPage() {
                                 {`${trainer.vorname.charAt(0)}${trainer.nachname.charAt(0)}`}
                               </AvatarFallback>
                             </Avatar>
-                            <div>
-                              <div className="font-medium">{`${trainer.vorname} ${trainer.nachname}`}</div>
-                              <div className="text-xs text-muted-foreground flex items-center">
+                            <div className="min-w-0">
+                              <div className="font-medium truncate">{`${trainer.vorname} ${trainer.nachname}`}</div>
+                              <div className="text-xs text-muted-foreground flex items-center flex-wrap gap-1">
                                 {showAllUsers && trainer.rolle !== "Trainer" && (
-                                  <span className="mr-2">Rolle: {trainer.rolle}</span>
+                                  <span className="mr-1">Rolle: {trainer.rolle}</span>
                                 )}
                                 {trainer.team && (
-                                  <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                                  <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded truncate max-w-[150px]">
                                     Team: {trainer.team}
                                   </span>
                                 )}
                               </div>
                             </div>
                           </div>
-                          <div className="flex items-center justify-center w-5 h-5 rounded-full border border-primary">
+                          <div className="flex items-center justify-center w-5 h-5 rounded-full border border-primary flex-shrink-0 ml-2">
                             {formData.trainer_id === trainer.id && <div className="w-3 h-3 rounded-full bg-primary" />}
                           </div>
                         </div>
@@ -528,11 +616,11 @@ export default function NewTeamPage() {
                   <Label htmlFor="ist_aktiv">Team ist aktiv</Label>
                 </div>
               </div>
-              <CardFooter className="px-0 pt-6">
+              <CardFooter className="px-0 pt-4 sm:pt-6 flex justify-end">
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="ml-auto bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-700 hover:to-primary-600"
+                  className="bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-700 hover:to-primary-600"
                 >
                   {isLoading ? (
                     <>
