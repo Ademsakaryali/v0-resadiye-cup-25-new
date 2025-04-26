@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
@@ -32,7 +31,18 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { FileText, Users, Trophy, Edit, AlertCircle, MoreVertical, UserPlus, Trash2, UserMinus } from "lucide-react"
+import {
+  FileText,
+  Users,
+  Edit,
+  AlertCircle,
+  MoreVertical,
+  UserPlus,
+  Trash2,
+  UserMinus,
+  MessageSquare,
+  ExternalLink,
+} from "lucide-react"
 
 export default function TeamDetailPage() {
   const params = useParams()
@@ -44,7 +54,6 @@ export default function TeamDetailPage() {
   const [blanketts, setBlanketts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState("spieler")
   const [trainerTeams, setTrainerTeams] = useState<any[]>([])
   const [showSpielerDialog, setShowSpielerDialog] = useState(false)
   const [editingSpieler, setEditingSpieler] = useState<any>(null)
@@ -55,6 +64,7 @@ export default function TeamDetailPage() {
   const [position, setPosition] = useState("")
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState<string | null>(null)
+  const [tournaments, setTournaments] = useState<any[]>([])
 
   useEffect(() => {
     // Prüfen, ob die ID "new" ist, und in diesem Fall zur Erstellungsseite weiterleiten
@@ -80,20 +90,20 @@ export default function TeamDetailPage() {
         const { data: spielerData, error: spielerError } = await supabase
           .from("team_spieler")
           .select(`
-    team_id,
-    spieler_id,
-    trikot_nummer,
-    position,
-    spieler:spieler_id (
-      id,
-      vorname,
-      nachname,
-      email,
-      geburtsdatum,
-      telefonnummer,
-      profilbild_url
-    )
-  `)
+            team_id,
+            spieler_id,
+            trikot_nummer,
+            position,
+            spieler:spieler_id (
+              id,
+              vorname,
+              nachname,
+              email,
+              geburtsdatum,
+              telefonnummer,
+              profilbild_url
+            )
+          `)
           .eq("team_id", params.id)
           .order("trikot_nummer", { ascending: true })
 
@@ -119,6 +129,28 @@ export default function TeamDetailPage() {
         if (blankettError) throw blankettError
 
         setBlanketts(blankettData)
+
+        // Turniere abrufen, an denen das Team teilnimmt
+        const { data: tournamentData, error: tournamentError } = await supabase
+          .from("tournament_teams")
+          .select(`
+            tournament:tournament_id (
+              id,
+              name,
+              start_datum,
+              end_datum,
+              ist_aktiv
+            )
+          `)
+          .eq("team_id", params.id)
+
+        if (tournamentError) throw tournamentError
+
+        const activeTeamTournaments = tournamentData
+          .map((item: any) => item.tournament)
+          .filter((tournament: any) => tournament.ist_aktiv)
+
+        setTournaments(activeTeamTournaments)
 
         // Wenn der Benutzer ein Trainer ist, alle seine Teams abrufen
         if (user?.rolle === "Trainer") {
@@ -178,25 +210,6 @@ export default function TeamDetailPage() {
     return alter
   }
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "entwurf":
-        return <Badge variant="outline">Entwurf</Badge>
-      case "eingereicht":
-        return <Badge variant="secondary">Eingereicht</Badge>
-      case "genehmigt":
-        return (
-          <Badge variant="default" className="bg-green-600">
-            Genehmigt
-          </Badge>
-        )
-      case "abgelehnt":
-        return <Badge variant="destructive">Abgelehnt</Badge>
-      default:
-        return <Badge variant="outline">{status}</Badge>
-    }
-  }
-
   const getPositionBadge = (position: string) => {
     switch (position) {
       case "Torwart":
@@ -223,13 +236,20 @@ export default function TeamDetailPage() {
 
   // Funktion zum Weiterleiten zum Blankett
   const handleBlankettClick = () => {
-    // Wenn nur ein Blankett vorhanden ist, direkt dorthin weiterleiten
-    if (blanketts.length === 1) {
-      router.push(`/teams/${team.id}/blankett/${blanketts[0].id}`)
-    } else {
-      // Ansonsten zur Blankett-Übersicht
-      router.push(`/teams/${team.id}/blankett`)
+    // Wenn das Team nur an einem aktiven Turnier teilnimmt und ein Blankett dafür existiert,
+    // direkt zum Blankett weiterleiten
+    if (tournaments.length === 1) {
+      const tournamentId = tournaments[0].id
+      const blankett = blanketts.find((b) => b.tournament_id === tournamentId)
+
+      if (blankett) {
+        router.push(`/teams/${team.id}/blankett/${blankett.id}`)
+        return
+      }
     }
+
+    // Ansonsten zur Blankett-Übersicht
+    router.push(`/teams/${team.id}/blankett`)
   }
 
   const handleTeamChange = (teamId: string) => {
@@ -237,6 +257,9 @@ export default function TeamDetailPage() {
   }
 
   const handleEditSpieler = (spieler: any) => {
+    // Nur Admins dürfen Spieler bearbeiten
+    if (!isAdmin()) return
+
     setEditingSpieler(spieler)
     setVorname(spieler.spieler.vorname || "")
     setNachname(spieler.spieler.nachname || "")
@@ -247,6 +270,9 @@ export default function TeamDetailPage() {
   }
 
   const handleUpdateSpieler = async () => {
+    // Nur Admins dürfen Spieler aktualisieren
+    if (!isAdmin()) return
+
     if (!editingSpieler || !vorname || !nachname || !geburtsdatum || !trikotNummer || !position) {
       setError("Bitte füllen Sie alle Felder aus.")
       return
@@ -331,6 +357,9 @@ export default function TeamDetailPage() {
   }
 
   const handleRemoveSpieler = async (spielerId: string) => {
+    // Nur Admins dürfen Spieler komplett entfernen
+    if (!isAdmin()) return
+
     try {
       setSaving(true)
       setError(null)
@@ -354,6 +383,7 @@ export default function TeamDetailPage() {
   }
 
   const handleSetVereinlos = async (spielerId: string) => {
+    // Sowohl Trainer als auch Admins dürfen Spieler als vereinslos setzen
     try {
       setSaving(true)
       setError(null)
@@ -455,21 +485,32 @@ export default function TeamDetailPage() {
                 <h2 className="text-2xl font-bold">{team.name}</h2>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Trainer</p>
                 <div className="flex items-center mt-2">
-                  <Avatar className="h-6 w-6 mr-2">
+                  <Avatar className="h-8 w-8 mr-2">
                     <AvatarImage src={team.trainer?.profilbild_url || ""} alt={team.trainer?.vorname} />
                     <AvatarFallback>
                       {team.trainer?.vorname?.charAt(0)}
                       {team.trainer?.nachname?.charAt(0)}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="text-sm">
-                    {team.trainer?.vorname} {team.trainer?.nachname}
-                  </span>
+                  <div className="flex flex-col items-start">
+                    <span className="text-sm font-medium">
+                      {team.trainer?.vorname} {team.trainer?.nachname}
+                    </span>
+                    {team.trainer?.geburtsdatum && (
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {calculateAge(team.trainer.geburtsdatum)} Jahre
+                      </span>
+                    )}
+                    {isAdmin() && (
+                      <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">{team.trainer?.email}</span>
+                    )}
+                  </div>
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{team.trainer?.email}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                  Erstellt am {formatDate(team.created_at)}
-                </p>
+                {isAdmin() && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    Erstellt am {formatDate(team.created_at)}
+                  </p>
+                )}
               </div>
 
               {/* Team-Auswahl für Trainer mit mehreren Teams */}
@@ -493,6 +534,26 @@ export default function TeamDetailPage() {
                 </div>
               )}
 
+              {/* Hinweis für Trainer zur Logo-Änderung */}
+              {isTrainer() && (
+                <Alert className="mb-4 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+                  <MessageSquare className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <AlertTitle className="text-blue-800 dark:text-blue-300 text-sm">Logo ändern?</AlertTitle>
+                  <AlertDescription className="text-blue-700 dark:text-blue-400 text-xs">
+                    Melden Sie sich bei einem unserer Administratoren, um Ihr Logo zu ändern.
+                    <a
+                      href="https://wa.me/436605795264"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center text-blue-600 dark:text-blue-300 mt-1 hover:underline"
+                    >
+                      <ExternalLink className="h-3 w-3 mr-1" />
+                      WhatsApp Kontakt
+                    </a>
+                  </AlertDescription>
+                </Alert>
+              )}
+
               <div className="flex flex-col gap-2 mt-4">
                 {canEdit() && (
                   <Button asChild variant="outline" size="sm" className="w-full">
@@ -513,84 +574,76 @@ export default function TeamDetailPage() {
           </Card>
         </div>
 
-        {/* Tabs für Spieler und Blanketts */}
+        {/* Spielerliste */}
         <div className="w-full md:w-2/3">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="spieler" className="flex items-center">
-                <Users className="h-4 w-4 mr-2" />
-                Spieler
-              </TabsTrigger>
-              <TabsTrigger value="turniere" className="flex items-center">
-                <Trophy className="h-4 w-4 mr-2" />
-                Turniere
-              </TabsTrigger>
-            </TabsList>
+          <Card className="bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800">
+            <CardHeader className="pb-2 flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-lg">Spielerliste</CardTitle>
+                <CardDescription>{spieler.length} Spieler im Team</CardDescription>
+              </div>
 
-            <TabsContent value="spieler" className="mt-4">
-              <Card className="bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800">
-                <CardHeader className="pb-2 flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle className="text-lg">Spielerliste</CardTitle>
-                    <CardDescription>{spieler.length} Spieler im Team</CardDescription>
-                  </div>
-
-                  {canEdit() && (
-                    <Button variant="outline" size="sm" className="bg-background/50">
-                      <UserPlus className="mr-2 h-4 w-4" />
-                      Spieler hinzufügen
-                    </Button>
-                  )}
-                </CardHeader>
-                <CardContent>
-                  {spieler.length === 0 ? (
-                    <div className="text-center py-6">
-                      <Users className="mx-auto h-12 w-12 text-gray-400" />
-                      <h3 className="mt-2 text-lg font-medium">Keine Spieler</h3>
-                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                        Diesem Team sind noch keine Spieler zugeordnet.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {spieler.map((s) => (
-                        <div
-                          key={s.id}
-                          className="flex items-center justify-between p-3 rounded-md border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 hover:shadow-sm transition-all duration-200"
-                        >
-                          <div className="flex items-center">
-                            <div className="w-8 text-center font-bold mr-2">{s.trikot_nummer || "-"}</div>
-                            <div className="flex items-center">
-                              <div className="w-8 h-8 flex items-center justify-center bg-gray-200 dark:bg-gray-700 rounded-full mr-3 text-xs font-bold">
-                                {getInitials(`${s.spieler?.vorname} ${s.spieler?.nachname}`)}
-                              </div>
-                              <div>
-                                <div className="font-medium">
-                                  {s.spieler?.vorname} {s.spieler?.nachname}
-                                </div>
-                                <div className="flex items-center text-xs text-gray-500 dark:text-gray-400">
-                                  <span className="mr-2">{formatDate(s.spieler?.geburtsdatum || "")}</span>
-                                  {s.spieler?.geburtsdatum && (
-                                    <span className="text-xs bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 rounded">
-                                      {calculateAge(s.spieler.geburtsdatum)} Jahre
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
+              {isAdmin() && (
+                <Button variant="outline" size="sm" className="bg-background/50">
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Spieler hinzufügen
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent>
+              {spieler.length === 0 ? (
+                <div className="text-center py-6">
+                  <Users className="mx-auto h-12 w-12 text-gray-400" />
+                  <h3 className="mt-2 text-lg font-medium">Keine Spieler</h3>
+                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    Diesem Team sind noch keine Spieler zugeordnet.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {spieler.map((s) => (
+                    <div
+                      key={s.spieler_id}
+                      className="flex items-center justify-between p-3 rounded-md border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 hover:shadow-sm transition-all duration-200"
+                    >
+                      <Link
+                        href={`/spieler/${s.spieler_id}`}
+                        className="flex items-center flex-1 min-w-0 overflow-hidden"
+                      >
+                        <div className="w-7 text-center font-bold mr-2 flex-shrink-0">{s.trikot_nummer || "-"}</div>
+                        <div className="flex items-center min-w-0">
+                          <div className="w-7 h-7 flex-shrink-0 flex items-center justify-center bg-gray-200 dark:bg-gray-700 rounded-full mr-2 text-xs font-bold">
+                            {getInitials(`${s.spieler?.vorname} ${s.spieler?.nachname}`)}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="font-medium truncate">
+                              {s.spieler?.vorname} {s.spieler?.nachname}
+                            </div>
+                            <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 space-x-1">
+                              <span className="truncate">{formatDate(s.spieler?.geburtsdatum || "")}</span>
+                              {s.spieler?.geburtsdatum && (
+                                <span className="flex-shrink-0 bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 rounded">
+                                  {calculateAge(s.spieler.geburtsdatum)} J.
+                                </span>
+                              )}
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            {s.position && <div className="mr-2">{getPositionBadge(s.position)}</div>}
-                            {canEdit() && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                                    <MoreVertical className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuLabel>Aktionen</DropdownMenuLabel>
-                                  <DropdownMenuSeparator />
+                        </div>
+                      </Link>
+                      <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                        {s.position && <div className="hidden sm:block">{getPositionBadge(s.position)}</div>}
+                        {canEdit() && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 flex-shrink-0">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Aktionen</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              {isAdmin() && (
+                                <>
                                   <DropdownMenuItem onClick={() => handleEditSpieler(s)}>
                                     <Edit className="h-4 w-4 mr-2" />
                                     Bearbeiten
@@ -599,164 +652,121 @@ export default function TeamDetailPage() {
                                     <Trash2 className="h-4 w-4 mr-2" />
                                     Löschen
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleSetVereinlos(s.spieler_id)}>
-                                    <UserMinus className="h-4 w-4 mr-2" />
-                                    Als vereinslos setzen
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )}
-                          </div>
-                        </div>
-                      ))}
+                                </>
+                              )}
+                              <DropdownMenuItem onClick={() => handleSetVereinlos(s.spieler_id)}>
+                                <UserMinus className="h-4 w-4 mr-2" />
+                                Als vereinslos setzen
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </div>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="turniere" className="mt-4">
-              <Card className="bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">Mannschaftsblanketts</CardTitle>
-                  <CardDescription>Übersicht der Mannschaftsblanketts für Turniere</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {blanketts.length === 0 ? (
-                    <div className="text-center py-6">
-                      <FileText className="mx-auto h-12 w-12 text-gray-400" />
-                      <h3 className="mt-2 text-lg font-medium">Keine Blanketts</h3>
-                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                        Für dieses Team wurden noch keine Turnierblanketts erstellt.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {blanketts.map((blankett) => (
-                        <div
-                          key={blankett.id}
-                          className="p-3 rounded-md border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50"
-                        >
-                          <div className="flex justify-between items-start mb-2">
-                            <div>
-                              <h4 className="font-medium">{blankett.tournament.name}</h4>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">
-                                {formatDate(blankett.tournament.start_datum)} -{" "}
-                                {formatDate(blankett.tournament.end_datum)}
-                              </p>
-                            </div>
-                            <div>{getStatusBadge(blankett.status)}</div>
-                          </div>
-                          <div className="flex justify-end mt-2">
-                            <Button asChild size="sm" variant="outline">
-                              <Link href={`/teams/${team.id}/blankett/${blankett.id}`}>Details</Link>
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
 
-      {/* Dialog zum Bearbeiten eines Spielers */}
-      <Dialog open={showSpielerDialog} onOpenChange={setShowSpielerDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Spieler bearbeiten</DialogTitle>
-            <DialogDescription>Ändern Sie die Spielerdaten und Position.</DialogDescription>
-          </DialogHeader>
+      {/* Dialog zum Bearbeiten eines Spielers (nur für Admins) */}
+      {isAdmin() && (
+        <Dialog open={showSpielerDialog} onOpenChange={setShowSpielerDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Spieler bearbeiten</DialogTitle>
+              <DialogDescription>Ändern Sie die Spielerdaten und Position.</DialogDescription>
+            </DialogHeader>
 
-          <div className="grid gap-4 py-4">
-            {editingSpieler && (
-              <div className="flex items-center gap-2 p-2 rounded-md bg-secondary/20">
-                <Avatar className="h-10 w-10">
-                  <AvatarImage
-                    src={editingSpieler.spieler?.profilbild_url || ""}
-                    alt={editingSpieler.spieler?.vorname}
-                  />
-                  <AvatarFallback>
-                    {getInitials(`${editingSpieler.spieler?.vorname} ${editingSpieler.spieler?.nachname}`)}
-                  </AvatarFallback>
-                </Avatar>
-                <div>
-                  <div className="font-medium">
-                    {editingSpieler.spieler?.vorname} {editingSpieler.spieler?.nachname}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {editingSpieler.spieler?.geburtsdatum && formatDate(editingSpieler.spieler.geburtsdatum)}
+            <div className="grid gap-4 py-4">
+              {editingSpieler && (
+                <div className="flex items-center gap-2 p-2 rounded-md bg-secondary/20">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage
+                      src={editingSpieler.spieler?.profilbild_url || ""}
+                      alt={editingSpieler.spieler?.vorname}
+                    />
+                    <AvatarFallback>
+                      {getInitials(`${editingSpieler.spieler?.vorname} ${editingSpieler.spieler?.nachname}`)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <div className="font-medium">
+                      {editingSpieler.spieler?.vorname} {editingSpieler.spieler?.nachname}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {editingSpieler.spieler?.geburtsdatum && formatDate(editingSpieler.spieler.geburtsdatum)}
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="vorname-edit">Vorname</Label>
-                <Input id="vorname-edit" value={vorname} onChange={(e) => setVorname(e.target.value)} />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="vorname-edit">Vorname</Label>
+                  <Input id="vorname-edit" value={vorname} onChange={(e) => setVorname(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="nachname-edit">Nachname</Label>
+                  <Input id="nachname-edit" value={nachname} onChange={(e) => setNachname(e.target.value)} />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="nachname-edit">Nachname</Label>
-                <Input id="nachname-edit" value={nachname} onChange={(e) => setNachname(e.target.value)} />
-              </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="geburtsdatum-edit">Geburtsdatum</Label>
-              <Input
-                id="geburtsdatum-edit"
-                type="date"
-                value={geburtsdatum}
-                onChange={(e) => setGeburtsdatum(e.target.value)}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="trikot-edit">Trikotnummer</Label>
+                <Label htmlFor="geburtsdatum-edit">Geburtsdatum</Label>
                 <Input
-                  id="trikot-edit"
-                  type="number"
-                  min="1"
-                  max="99"
-                  value={trikotNummer}
-                  onChange={(e) => setTrikotNummer(e.target.value)}
+                  id="geburtsdatum-edit"
+                  type="date"
+                  value={geburtsdatum}
+                  onChange={(e) => setGeburtsdatum(e.target.value)}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="position-edit">Position</Label>
-                <Select value={position} onValueChange={setPosition}>
-                  <SelectTrigger id="position-edit">
-                    <SelectValue placeholder="Position auswählen" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Torwart">Torwart</SelectItem>
-                    <SelectItem value="Abwehr">Abwehr</SelectItem>
-                    <SelectItem value="Mittelfeld">Mittelfeld</SelectItem>
-                    <SelectItem value="Sturm">Sturm</SelectItem>
-                  </SelectContent>
-                </Select>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="trikot-edit">Trikotnummer</Label>
+                  <Input
+                    id="trikot-edit"
+                    type="number"
+                    min="1"
+                    max="99"
+                    value={trikotNummer}
+                    onChange={(e) => setTrikotNummer(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="position-edit">Position</Label>
+                  <Select value={position} onValueChange={setPosition}>
+                    <SelectTrigger id="position-edit">
+                      <SelectValue placeholder="Position auswählen" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Torwart">Torwart</SelectItem>
+                      <SelectItem value="Abwehr">Abwehr</SelectItem>
+                      <SelectItem value="Mittelfeld">Mittelfeld</SelectItem>
+                      <SelectItem value="Sturm">Sturm</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
-          </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSpielerDialog(false)}>
-              Abbrechen
-            </Button>
-            <Button
-              onClick={handleUpdateSpieler}
-              disabled={!vorname || !nachname || !geburtsdatum || !trikotNummer || !position || saving}
-            >
-              {saving ? "Wird aktualisiert..." : "Speichern"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowSpielerDialog(false)}>
+                Abbrechen
+              </Button>
+              <Button
+                onClick={handleUpdateSpieler}
+                disabled={!vorname || !nachname || !geburtsdatum || !trikotNummer || !position || saving}
+              >
+                {saving ? "Wird aktualisiert..." : "Speichern"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   )
 }

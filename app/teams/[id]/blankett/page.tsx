@@ -98,6 +98,15 @@ export default function TeamBlankettPage() {
           // Wenn es nur ein Turnier gibt, wähle es automatisch aus
           if (activeTeamTournaments.length === 1) {
             setSelectedTournament(activeTeamTournaments[0].id)
+
+            // Wenn es nur ein Turnier gibt und ein Blankett dafür existiert, direkt dorthin weiterleiten
+            const existingBlankett = blankettData.find(
+              (b: BlankettEntry) => b.tournament_id === activeTeamTournaments[0].id,
+            )
+            if (existingBlankett) {
+              router.push(`/teams/${params.id}/blankett/${existingBlankett.id}`)
+              return
+            }
           }
         }
       } catch (error: any) {
@@ -205,7 +214,7 @@ export default function TeamBlankettPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
       <div className="mb-6">
         <Button variant="ghost" asChild className="mb-4">
           <Link href={`/teams/${team.id}`}>
@@ -213,7 +222,7 @@ export default function TeamBlankettPage() {
             Zurück zum Team
           </Link>
         </Button>
-        <h1 className="text-3xl font-bold">Mannschaftsblankett</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold">Mannschaftsblankett</h1>
         <p className="text-muted-foreground mt-2">
           Hier können Sie Mannschaftsblanketts für Turniere erstellen und verwalten.
         </p>
@@ -266,16 +275,16 @@ export default function TeamBlankettPage() {
 
               {selectedTournament && (
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between p-3 rounded-md bg-secondary/30">
-                    <div className="flex items-center">
-                      <Calendar className="h-4 w-4 mr-2" />
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 rounded-md bg-secondary/30">
+                    <div className="flex items-center mb-2 sm:mb-0">
+                      <Calendar className="h-4 w-4 mr-2 flex-shrink-0" />
                       <span className="text-sm">
                         {formatDate(tournaments.find((t) => t.id === selectedTournament)?.start_datum || "")} -
                         {formatDate(tournaments.find((t) => t.id === selectedTournament)?.end_datum || "")}
                       </span>
                     </div>
                     {getExistingBlankett(selectedTournament) && (
-                      <Badge variant="outline" className="bg-background/50">
+                      <Badge variant="outline" className="bg-background/50 self-start sm:self-auto">
                         Blankett vorhanden
                       </Badge>
                     )}
@@ -295,9 +304,9 @@ export default function TeamBlankettPage() {
                         </div>
                       </div>
                       {getCountdownText(selectedTournament) && (
-                        <div className="flex items-center p-2 rounded-md bg-secondary/20 text-sm">
-                          <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                          {getCountdownText(selectedTournament)}
+                        <div className="flex items-start sm:items-center p-2 rounded-md bg-secondary/20 text-sm">
+                          <Clock className="h-4 w-4 mr-2 text-muted-foreground flex-shrink-0 mt-0.5 sm:mt-0" />
+                          <span className="flex-1">{getCountdownText(selectedTournament)}</span>
                         </div>
                       )}
                     </div>
@@ -307,11 +316,11 @@ export default function TeamBlankettPage() {
             </div>
           )}
         </CardContent>
-        <CardFooter>
+        <CardFooter className="flex flex-col sm:flex-row gap-2">
           <Button
             onClick={handleCreateBlankett}
             disabled={!selectedTournament || tournaments.length === 0}
-            className="ml-auto bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-700 hover:to-primary-600"
+            className="w-full sm:ml-auto sm:w-auto bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-700 hover:to-primary-600"
           >
             {getExistingBlankett(selectedTournament) ? (
               <>
@@ -339,10 +348,13 @@ export default function TeamBlankettPage() {
               {blanketts.map((blankett) => {
                 const tournament = tournaments.find((t) => t.id === blankett.tournament_id)
                 return (
-                  <div key={blankett.id} className="flex items-center justify-between p-3 rounded-md bg-secondary/30">
+                  <div
+                    key={blankett.id}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-md bg-secondary/30 gap-3"
+                  >
                     <div>
                       <p className="font-medium">{tournament?.name || "Unbekanntes Turnier"}</p>
-                      <div className="flex items-center gap-2 mt-1">
+                      <div className="flex flex-wrap items-center gap-2 mt-1">
                         <Badge
                           variant={
                             blankett.status === "entwurf"
@@ -353,6 +365,7 @@ export default function TeamBlankettPage() {
                                   ? "default"
                                   : "destructive"
                           }
+                          className={blankett.status === "genehmigt" ? "bg-green-600" : ""}
                         >
                           {blankett.status.charAt(0).toUpperCase() + blankett.status.slice(1)}
                         </Badge>
@@ -363,7 +376,7 @@ export default function TeamBlankettPage() {
                         )}
                       </div>
                     </div>
-                    <Button asChild size="sm" variant="secondary">
+                    <Button asChild size="sm" variant="secondary" className="self-end sm:self-auto">
                       <Link href={`/teams/${team.id}/blankett/${blankett.id}`}>Bearbeiten</Link>
                     </Button>
                   </div>
