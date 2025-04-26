@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/dialog"
 import { Switch } from "@/components/ui/switch"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
 export default function EditTeamPage() {
   const params = useParams()
@@ -40,10 +40,10 @@ export default function EditTeamPage() {
     logo_url: "", // Geändert zu logo_url
   })
   const [trainers, setTrainers] = useState<
-    Array<{ id: string; vorname: string; nachname: string; rolle: string; team?: string; profile_image_url?: string }>
+    Array<{ id: string; vorname: string; nachname: string; rolle: string; team?: string }>
   >([])
   const [filteredTrainers, setFilteredTrainers] = useState<
-    Array<{ id: string; vorname: string; nachname: string; rolle: string; team?: string; profile_image_url?: string }>
+    Array<{ id: string; vorname: string; nachname: string; rolle: string; team?: string }>
   >([])
   const [searchQuery, setSearchQuery] = useState("")
   const [showAllUsers, setShowAllUsers] = useState(false)
@@ -89,10 +89,7 @@ export default function EditTeamPage() {
     const fetchTrainers = async () => {
       try {
         // Trainer mit Team-Informationen abrufen
-        const query = supabase
-          .from("users")
-          .select("id, vorname, nachname, rolle, profile_image_url")
-          .eq("ist_aktiv", true)
+        const query = supabase.from("users").select("id, vorname, nachname, rolle").eq("ist_aktiv", true)
 
         if (!showAllUsers) {
           query.eq("rolle", "Trainer")
@@ -528,10 +525,6 @@ export default function EditTeamPage() {
                         >
                           <div className="flex items-center flex-1">
                             <Avatar className="h-8 w-8 mr-3">
-                              <AvatarImage
-                                src={trainer.profile_image_url || undefined}
-                                alt={`${trainer.vorname} ${trainer.nachname}`}
-                              />
                               <AvatarFallback className="bg-primary-700 text-white">
                                 {`${trainer.vorname.charAt(0)}${trainer.nachname.charAt(0)}`}
                               </AvatarFallback>
