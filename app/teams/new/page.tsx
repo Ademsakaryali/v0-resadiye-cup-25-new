@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
-import { AlertCircle, ArrowLeft, Search, Plus, LinkIcon } from "lucide-react"
+import { AlertCircle, ArrowLeft, Search, Plus, LinkIcon, UserRound } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   Dialog,
@@ -77,6 +77,7 @@ export default function NewTeamPage() {
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingTrainers, setIsLoadingTrainers] = useState(true)
+  const [trainerLoadError, setTrainerLoadError] = useState<string | null>(null)
 
   // State für neuen Trainer Dialog
   const [showNewTrainerDialog, setShowNewTrainerDialog] = useState(false)
@@ -97,71 +98,87 @@ export default function NewTeamPage() {
   const { toast } = useToast()
 
   // Trainer laden
-  useEffect(() => {
-    const fetchTrainers = async () => {
-      setIsLoadingTrainers(true)
-      try {
-        // Trainer mit Team-Informationen abrufen
-        const query = supabase
-          .from("users")
-          .select("id, vorname, nachname, rolle, profile_image_url")
-          .eq("ist_aktiv", true)
+  const fetchTrainers = async () => {
+    setIsLoadingTrainers(true)
+    setTrainerLoadError(null)
 
-        if (!showAllUsers) {
-          query.eq("rolle", "Trainer")
-        }
+    try {
+      console.log("Lade Trainer...", showAllUsers ? "Alle Benutzer" : "Nur Trainer")
 
-        const { data: usersData, error: usersError } = await query.order("nachname", { ascending: true })
+      // Benutzer abrufen
+      let query = supabase
+        .from("users")
+        .select("id, vorname, nachname, rolle, profile_image_url, email")
+        .eq("ist_aktiv", true)
 
-        if (usersError) {
-          throw usersError
-        }
-
-        // Teams für die Trainer abrufen
-        const { data: teamsData, error: teamsError } = await supabase
-          .from("teams")
-          .select("id, name, trainer_id")
-          .not("trainer_id", "is", null)
-
-        if (teamsError) {
-          throw teamsError
-        }
-
-        // Trainer mit Team-Informationen anreichern
-        const trainersWithTeams = usersData.map((trainer) => {
-          const team = teamsData.find((team) => team.trainer_id === trainer.id)
-          return {
-            ...trainer,
-            team: team ? team.name : undefined,
-          }
-        })
-
-        setTrainers(trainersWithTeams || [])
-        setFilteredTrainers(trainersWithTeams || [])
-      } catch (error) {
-        console.error("Fehler beim Laden der Trainer:", error)
-        toast({
-          title: "Fehler",
-          description: "Trainer konnten nicht geladen werden. Bitte versuchen Sie es später erneut.",
-          variant: "destructive",
-        })
-      } finally {
-        setIsLoadingTrainers(false)
+      if (!showAllUsers) {
+        query = query.eq("rolle", "Trainer")
       }
-    }
 
+      const { data: usersData, error: usersError } = await query.order("nachname", { ascending: true })
+
+      if (usersError) {
+        console.error("Fehler beim Laden der Benutzer:", usersError)
+        throw usersError
+      }
+
+      console.log(`${usersData?.length || 0} Benutzer geladen`)
+
+      // Teams für die Trainer abrufen
+      const { data: teamsData, error: teamsError } = await supabase
+        .from("teams")
+        .select("id, name, trainer_id")
+        .not("trainer_id", "is", null)
+
+      if (teamsError) {
+        console.error("Fehler beim Laden der Teams:", teamsError)
+        throw teamsError
+      }
+
+      console.log(`${teamsData?.length || 0} Teams geladen`)
+
+      // Trainer mit Team-Informationen anreichern
+      const trainersWithTeams = usersData.map((trainer) => {
+        const team = teamsData.find((team) => team.trainer_id === trainer.id)
+        return {
+          ...trainer,
+          team: team ? team.name : undefined,
+        }
+      })
+
+      console.log("Trainer mit Teams:", trainersWithTeams)
+      setTrainers(trainersWithTeams || [])
+      setFilteredTrainers(trainersWithTeams || [])
+    } catch (error: any) {
+      console.error("Fehler beim Laden der Trainer:", error)
+      setTrainerLoadError(error.message || "Trainer konnten nicht geladen werden")
+      toast({
+        title: "Fehler",
+        description: "Trainer konnten nicht geladen werden. Bitte versuchen Sie es später erneut.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoadingTrainers(false)
+    }
+  }
+
+  // Trainer beim Laden der Seite und bei Änderung des Schalters abrufen
+  useEffect(() => {
     fetchTrainers()
-  }, [supabase, showAllUsers, toast])
+  }, [showAllUsers]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Trainer filtern bei Sucheingabe
   useEffect(() => {
     if (searchQuery.trim() === "") {
       setFilteredTrainers(trainers)
     } else {
+      const query = searchQuery.toLowerCase()
       const filtered = trainers.filter(
         (trainer) =>
-          trainer.vorname.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          trainer.nachname.toLowerCase().includes(searchQuery.toLowerCase()),
+          trainer.vorname.toLowerCase().includes(query) ||
+          trainer.nachname.toLowerCase().includes(query) ||
+          `${trainer.vorname} ${trainer.nachname}`.toLowerCase().includes(query) ||
+          (trainer.email && trainer.email.toLowerCase().includes(query)),
       )
       setFilteredTrainers(filtered)
     }
@@ -243,6 +260,7 @@ export default function NewTeamPage() {
         vorname: newTrainerData.vorname,
         nachname: newTrainerData.nachname,
         rolle: "Trainer",
+        email: newTrainerData.email,
       }
 
       setTrainers((prev) => [...prev, newTrainer])
@@ -433,7 +451,15 @@ export default function NewTeamPage() {
                       Trainer
                     </Label>
                     <div className="flex items-center space-x-2">
-                      <Switch id="show-all-users" checked={showAllUsers} onCheckedChange={setShowAllUsers} />
+                      <Switch
+                        id="show-all-users"
+                        checked={showAllUsers}
+                        onCheckedChange={(checked) => {
+                          setShowAllUsers(checked)
+                          // Wir setzen den Suchbegriff zurück, wenn der Schalter umgelegt wird
+                          setSearchQuery("")
+                        }}
+                      />
                       <Label htmlFor="show-all-users" className="text-xs">
                         Alle Benutzer anzeigen
                       </Label>
@@ -563,8 +589,29 @@ export default function NewTeamPage() {
                       <div className="p-4 flex justify-center">
                         <LoadingSpinner />
                       </div>
+                    ) : trainerLoadError ? (
+                      <div className="p-4 text-center">
+                        <Alert variant="destructive" className="mb-2">
+                          <AlertCircle className="h-4 w-4" />
+                          <AlertDescription>{trainerLoadError}</AlertDescription>
+                        </Alert>
+                        <Button variant="outline" size="sm" onClick={fetchTrainers} className="mt-2">
+                          Erneut versuchen
+                        </Button>
+                      </div>
                     ) : filteredTrainers.length === 0 ? (
-                      <div className="p-4 text-center text-muted-foreground">Keine Trainer gefunden</div>
+                      <div className="p-8 text-center text-muted-foreground flex flex-col items-center justify-center">
+                        <UserRound className="h-12 w-12 mb-2 text-muted-foreground/50" />
+                        <p>Keine Trainer gefunden</p>
+                        {searchQuery && (
+                          <p className="text-sm mt-1">
+                            Versuchen Sie einen anderen Suchbegriff oder{" "}
+                            <button className="text-primary underline" onClick={() => setSearchQuery("")}>
+                              zeigen Sie alle an
+                            </button>
+                          </p>
+                        )}
+                      </div>
                     ) : (
                       filteredTrainers.map((trainer) => (
                         <div
@@ -605,6 +652,22 @@ export default function NewTeamPage() {
                       ))
                     )}
                   </div>
+
+                  {/* Anzeige der Anzahl der gefundenen Trainer */}
+                  {!isLoadingTrainers && !trainerLoadError && filteredTrainers.length > 0 && (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {filteredTrainers.length} {filteredTrainers.length === 1 ? "Trainer" : "Trainer"} gefunden
+                      {searchQuery && (
+                        <>
+                          {" "}
+                          für Suche "{searchQuery}"{" "}
+                          <button className="text-primary underline" onClick={() => setSearchQuery("")}>
+                            zurücksetzen
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center space-x-2 pt-2">
