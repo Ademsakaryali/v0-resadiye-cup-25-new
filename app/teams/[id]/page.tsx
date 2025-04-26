@@ -534,26 +534,6 @@ export default function TeamDetailPage() {
                 </div>
               )}
 
-              {/* Hinweis für Trainer zur Logo-Änderung */}
-              {isTrainer() && (
-                <Alert className="mb-4 bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
-                  <MessageSquare className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                  <AlertTitle className="text-blue-800 dark:text-blue-300 text-sm">Logo ändern?</AlertTitle>
-                  <AlertDescription className="text-blue-700 dark:text-blue-400 text-xs">
-                    Melden Sie sich bei einem unserer Administratoren, um Ihr Logo zu ändern.
-                    <a
-                      href="https://wa.me/436605795264"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center text-blue-600 dark:text-blue-300 mt-1 hover:underline"
-                    >
-                      <ExternalLink className="h-3 w-3 mr-1" />
-                      WhatsApp Kontakt
-                    </a>
-                  </AlertDescription>
-                </Alert>
-              )}
-
               <div className="flex flex-col gap-2 mt-4">
                 {canEdit() && (
                   <Button asChild variant="outline" size="sm" className="w-full">
@@ -579,7 +559,7 @@ export default function TeamDetailPage() {
           <Card className="bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800">
             <CardHeader className="pb-2 flex flex-row items-center justify-between">
               <div>
-                <CardTitle className="text-lg">Spielerliste</CardTitle>
+                <CardTitle className="text-lg">Mannschaftskader</CardTitle>
                 <CardDescription>{spieler.length} Spieler im Team</CardDescription>
               </div>
 
@@ -656,7 +636,7 @@ export default function TeamDetailPage() {
                               )}
                               <DropdownMenuItem onClick={() => handleSetVereinlos(s.spieler_id)}>
                                 <UserMinus className="h-4 w-4 mr-2" />
-                                Als vereinslos setzen
+                                Aus dem Mannschaft enfernen
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
