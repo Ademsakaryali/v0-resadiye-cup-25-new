@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/dialog"
 import { Switch } from "@/components/ui/switch"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { useToast } from "@/components/ui/use-toast"
 
 // Typen für Trainer und Formulardaten
@@ -38,7 +38,7 @@ interface Trainer {
   nachname: string
   rolle: string
   team?: string
-  profile_image_url?: string
+  // Entfernt: profile_image_url?: string
 }
 
 interface FormData {
@@ -105,11 +105,8 @@ export default function NewTeamPage() {
     try {
       console.log("Lade Trainer...", showAllUsers ? "Alle Benutzer" : "Nur Trainer")
 
-      // Benutzer abrufen
-      let query = supabase
-        .from("users")
-        .select("id, vorname, nachname, rolle, profile_image_url, email")
-        .eq("ist_aktiv", true)
+      // Benutzer abrufen - WICHTIG: profile_image_url entfernt
+      let query = supabase.from("users").select("id, vorname, nachname, rolle, email").eq("ist_aktiv", true)
 
       if (!showAllUsers) {
         query = query.eq("rolle", "Trainer")
@@ -342,6 +339,11 @@ export default function NewTeamPage() {
     } catch (e) {
       return false
     }
+  }
+
+  // Hilfsfunktion, um Initialen zu generieren
+  const getInitials = (vorname: string, nachname: string) => {
+    return `${vorname.charAt(0)}${nachname.charAt(0)}`.toUpperCase()
   }
 
   return (
@@ -623,12 +625,9 @@ export default function NewTeamPage() {
                         >
                           <div className="flex items-center flex-1 min-w-0">
                             <Avatar className="h-8 w-8 mr-3 flex-shrink-0">
-                              <AvatarImage
-                                src={trainer.profile_image_url || undefined}
-                                alt={`${trainer.vorname} ${trainer.nachname}`}
-                              />
+                              {/* Kein AvatarImage mehr, da profile_image_url nicht existiert */}
                               <AvatarFallback className="bg-primary-700 text-white">
-                                {`${trainer.vorname.charAt(0)}${trainer.nachname.charAt(0)}`}
+                                {getInitials(trainer.vorname, trainer.nachname)}
                               </AvatarFallback>
                             </Avatar>
                             <div className="min-w-0">
