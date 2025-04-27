@@ -34,7 +34,6 @@ export function AddPlayerToTeamForm({ teamId, existingPlayerIds = [], onSuccess,
   // Neuer Spieler erstellen
   const [vorname, setVorname] = useState("")
   const [nachname, setNachname] = useState("")
-  const [email, setEmail] = useState("")
   const [geburtsdatum, setGeburtsdatum] = useState("")
   const [telefonnummer, setTelefonnummer] = useState("")
   const [newPlayerTrikotNummer, setNewPlayerTrikotNummer] = useState("")
@@ -212,23 +211,18 @@ export function AddPlayerToTeamForm({ teamId, existingPlayerIds = [], onSuccess,
         return
       }
 
-      // Benutzer mit Auth erstellen
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: generatedEmail,
-        password: generatedPassword,
-        email_confirm: true,
-      })
-
-      if (authError) throw authError
+      // UUID für den neuen Benutzer generieren
+      const userId = crypto.randomUUID()
 
       // Neuen Spieler erstellen
       const { data: newPlayer, error: createError } = await supabase
         .from("users")
         .insert({
-          id: authData.user.id,
+          id: userId,
           vorname,
           nachname,
           email: generatedEmail,
+          password_hash: generatedPassword, // Direkt das Passwort speichern (in einer echten Anwendung würde man es hashen)
           geburtsdatum,
           telefonnummer: telefonnummer || null,
           rolle: "Spieler",
@@ -259,7 +253,6 @@ export function AddPlayerToTeamForm({ teamId, existingPlayerIds = [], onSuccess,
       // Formular zurücksetzen
       setVorname("")
       setNachname("")
-      setEmail("")
       setGeburtsdatum("")
       setTelefonnummer("")
       setNewPlayerTrikotNummer("")
@@ -489,7 +482,7 @@ export function AddPlayerToTeamForm({ teamId, existingPlayerIds = [], onSuccess,
         </TabsContent>
       </Tabs>
       {success && (
-        <Alert variant="success" className="mt-4">
+        <Alert className="mt-4 border-green-600 text-green-600">
           <AlertDescription className="whitespace-pre-line">{success}</AlertDescription>
         </Alert>
       )}
