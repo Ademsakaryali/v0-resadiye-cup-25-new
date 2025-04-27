@@ -157,7 +157,7 @@ export function AddPlayerToTeamForm({ teamId, existingPlayerIds = [], onSuccess,
   }
 
   const handleCreateAndAddPlayer = async () => {
-    if (!vorname || !nachname || !email || !geburtsdatum || !newPlayerTrikotNummer || !newPlayerPosition) {
+    if (!vorname || !nachname || !geburtsdatum || !newPlayerTrikotNummer || !newPlayerPosition) {
       setError("Bitte füllen Sie alle Pflichtfelder aus.")
       return
     }
@@ -165,6 +165,23 @@ export function AddPlayerToTeamForm({ teamId, existingPlayerIds = [], onSuccess,
     try {
       setLoading(true)
       setError(null)
+
+      // Alter berechnen
+      const birthDate = new Date(geburtsdatum)
+      const today = new Date()
+      let alter = today.getFullYear() - birthDate.getFullYear()
+      const monthDiff = today.getMonth() - birthDate.getMonth()
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        alter--
+      }
+
+      // E-Mail automatisch generieren
+      const generatedEmail = `${vorname.toLowerCase()}${nachname.toLowerCase()}${alter}@resadiyecup.com`
+
+      // Passwort automatisch generieren
+      const vornamePrefix = vorname.substring(0, 2).toLowerCase()
+      const nachnamePrefix = nachname.substring(0, 2).toLowerCase()
+      const generatedPassword = `${vornamePrefix}${nachnamePrefix}5454`
 
       // Prüfen, ob die Trikotnummer bereits vergeben ist
       const { data: existingTrikot, error: trikotError } = await supabase
@@ -185,7 +202,7 @@ export function AddPlayerToTeamForm({ teamId, existingPlayerIds = [], onSuccess,
       const { data: existingEmail, error: emailError } = await supabase
         .from("users")
         .select("id")
-        .eq("email", email)
+        .eq("email", generatedEmail)
         .maybeSingle()
 
       if (emailError) throw emailError
@@ -195,16 +212,27 @@ export function AddPlayerToTeamForm({ teamId, existingPlayerIds = [], onSuccess,
         return
       }
 
+      // Benutzer mit Auth erstellen
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: generatedEmail,
+        password: generatedPassword,
+        email_confirm: true,
+      })
+
+      if (authError) throw authError
+
       // Neuen Spieler erstellen
       const { data: newPlayer, error: createError } = await supabase
         .from("users")
         .insert({
+          id: authData.user.id,
           vorname,
           nachname,
-          email,
+          email: generatedEmail,
           geburtsdatum,
           telefonnummer: telefonnummer || null,
           rolle: "Spieler",
+          ist_aktiv: true,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
@@ -224,7 +252,9 @@ export function AddPlayerToTeamForm({ teamId, existingPlayerIds = [], onSuccess,
 
       if (addError) throw addError
 
-      setSuccess("Neuer Spieler erfolgreich erstellt und zum Team hinzugefügt.")
+      setSuccess(`Neuer Spieler erfolgreich erstellt und zum Team hinzugefügt. 
+      E-Mail: ${generatedEmail} 
+      Passwort: ${generatedPassword}`)
 
       // Formular zurücksetzen
       setVorname("")
@@ -396,18 +426,6 @@ export function AddPlayerToTeamForm({ teamId, existingPlayerIds = [], onSuccess,
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="email">E-Mail *</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="E-Mail-Adresse"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="geburtsdatum">Geburtsdatum *</Label>
@@ -463,21 +481,18 @@ export function AddPlayerToTeamForm({ teamId, existingPlayerIds = [], onSuccess,
           <Button
             className="w-full"
             onClick={handleCreateAndAddPlayer}
-            disabled={
-              !vorname ||
-              !nachname ||
-              !email ||
-              !geburtsdatum ||
-              !newPlayerTrikotNummer ||
-              !newPlayerPosition ||
-              loading
-            }
+            disabled={!vorname || !nachname || !geburtsdatum || !newPlayerTrikotNummer || !newPlayerPosition || loading}
           >
             {loading ? <LoadingSpinner className="mr-2" /> : <UserPlus className="mr-2 h-4 w-4" />}
             Spieler erstellen und zum Team hinzufügen
           </Button>
         </TabsContent>
       </Tabs>
+      {success && (
+        <Alert variant="success" className="mt-4">
+          <AlertDescription className="whitespace-pre-line">{success}</AlertDescription>
+        </Alert>
+      )}
     </div>
   )
 }
