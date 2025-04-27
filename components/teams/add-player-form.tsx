@@ -124,13 +124,12 @@ export function AddPlayerToTeamForm({ teamId, existingPlayerIds = [], onSuccess,
         return
       }
 
-      // Spieler zum Team hinzufügen
+      // Spieler zum Team hinzufügen - ohne created_at
       const { error: addError } = await supabase.from("team_spieler").insert({
         team_id: teamId,
         spieler_id: selectedPlayer.id,
         trikot_nummer: Number.parseInt(trikotNummer),
         position,
-        created_at: new Date().toISOString(),
       })
 
       if (addError) throw addError
@@ -222,26 +221,23 @@ export function AddPlayerToTeamForm({ teamId, existingPlayerIds = [], onSuccess,
           vorname,
           nachname,
           email: generatedEmail,
-          password_hash: generatedPassword, // Direkt das Passwort speichern (in einer echten Anwendung würde man es hashen)
+          password_hash: generatedPassword, // Direkt das Passwort speichern
           geburtsdatum,
           telefonnummer: telefonnummer || null,
           rolle: "Spieler",
           ist_aktiv: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
         })
         .select("id")
         .single()
 
       if (createError) throw createError
 
-      // Spieler zum Team hinzufügen
+      // Spieler zum Team hinzufügen - ohne created_at
       const { error: addError } = await supabase.from("team_spieler").insert({
         team_id: teamId,
         spieler_id: newPlayer.id,
         trikot_nummer: Number.parseInt(newPlayerTrikotNummer),
         position: newPlayerPosition,
-        created_at: new Date().toISOString(),
       })
 
       if (addError) throw addError
