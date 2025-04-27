@@ -8,7 +8,7 @@ import { getSupabaseClient } from "@/lib/supabase/client"
 import { useAuth } from "@/context/auth-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -19,6 +19,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog"
 import {
   DropdownMenu,
@@ -31,18 +32,8 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-  FileText,
-  Users,
-  Edit,
-  AlertCircle,
-  MoreVertical,
-  UserPlus,
-  Trash2,
-  UserMinus,
-  MessageSquare,
-  ExternalLink,
-} from "lucide-react"
+import { FileText, Users, Edit, AlertCircle, MoreVertical, UserPlus, Trash2, UserMinus } from "lucide-react"
+import { AddPlayerToTeamForm } from "@/components/teams/add-player-form"
 
 export default function TeamDetailPage() {
   const params = useParams()
@@ -65,6 +56,7 @@ export default function TeamDetailPage() {
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState<string | null>(null)
   const [tournaments, setTournaments] = useState<any[]>([])
+  const [showAddPlayerDialog, setShowAddPlayerDialog] = useState(false)
 
   useEffect(() => {
     // Prüfen, ob die ID "new" ist, und in diesem Fall zur Erstellungsseite weiterleiten
@@ -410,6 +402,54 @@ export default function TeamDetailPage() {
     }
   }
 
+  const handlePlayerAdded = () => {
+    setSuccess("Spieler erfolgreich zum Team hinzugefügt.")
+    setShowAddPlayerDialog(false)
+
+    // Daten neu laden
+    setTimeout(() => {
+      setSuccess(null)
+      // Team-Daten neu laden
+      const fetchTeamData = async () => {
+        try {
+          setLoading(true)
+
+          // Spieler abrufen mit Trikotnummern und Positionen
+          const { data: spielerData, error: spielerError } = await supabase
+            .from("team_spieler")
+            .select(`
+              team_id,
+              spieler_id,
+              trikot_nummer,
+              position,
+              spieler:spieler_id (
+                id,
+                vorname,
+                nachname,
+                email,
+                geburtsdatum,
+                telefonnummer,
+                profilbild_url
+              )
+            `)
+            .eq("team_id", params.id)
+            .order("trikot_nummer", { ascending: true })
+
+          if (spielerError) throw spielerError
+
+          setSpieler(spielerData)
+        } catch (error: any) {
+          console.error("Fehler beim Aktualisieren der Spielerliste:", error)
+          setError(error.message)
+        } finally {
+          setLoading(false)
+        }
+      }
+
+      fetchTeamData()
+    }, 1000)
+  }
+
   // Wenn die ID "new" ist, wird die Seite zur Erstellungsseite weitergeleitet
   // Dies ist eine zusätzliche Sicherheitsmaßnahme, falls die Weiterleitung im useEffect nicht funktioniert
   if (params.id === "new") {
@@ -486,7 +526,6 @@ export default function TeamDetailPage() {
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Trainer</p>
                 <div className="flex items-center mt-2">
                   <Avatar className="h-8 w-8 mr-2">
-                    <AvatarImage src={team.trainer?.profilbild_url || ""} alt={team.trainer?.vorname} />
                     <AvatarFallback>
                       {team.trainer?.vorname?.charAt(0)}
                       {team.trainer?.nachname?.charAt(0)}
@@ -564,10 +603,28 @@ export default function TeamDetailPage() {
               </div>
 
               {isAdmin() && (
-                <Button variant="outline" size="sm" className="bg-background/50">
-                  <UserPlus className="mr-2 h-4 w-4" />
-                  Spieler hinzufügen
-                </Button>
+                <Dialog open={showAddPlayerDialog} onOpenChange={setShowAddPlayerDialog}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="bg-background/50">
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Spieler hinzufügen
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-[600px]">
+                    <DialogHeader>
+                      <DialogTitle>Spieler zum Team hinzufügen</DialogTitle>
+                      <DialogDescription>
+                        Fügen Sie einen existierenden Spieler zum Team hinzu oder erstellen Sie einen neuen Spieler.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <AddPlayerToTeamForm
+                      teamId={team.id}
+                      existingPlayerIds={spieler.map((s) => s.spieler_id)}
+                      onSuccess={handlePlayerAdded}
+                      onError={(errorMsg) => setError(errorMsg)}
+                    />
+                  </DialogContent>
+                </Dialog>
               )}
             </CardHeader>
             <CardContent>
@@ -664,10 +721,6 @@ export default function TeamDetailPage() {
               {editingSpieler && (
                 <div className="flex items-center gap-2 p-2 rounded-md bg-secondary/20">
                   <Avatar className="h-10 w-10">
-                    <AvatarImage
-                      src={editingSpieler.spieler?.profilbild_url || ""}
-                      alt={editingSpieler.spieler?.vorname}
-                    />
                     <AvatarFallback>
                       {getInitials(`${editingSpieler.spieler?.vorname} ${editingSpieler.spieler?.nachname}`)}
                     </AvatarFallback>
