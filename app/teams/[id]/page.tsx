@@ -552,7 +552,8 @@ export default function TeamDetailPage() {
               </Badge>
               {calculateTeamAverageAge() > 0 && (
                 <Badge variant="outline" className="flex items-center gap-1 border-gray-700 text-gray-300">
-                  <Calendar className="h-3 w-3 text-blue-400" />Ø {calculateTeamAverageAge()} Jahre
+                  <Calendar className="h-3 w-3 text-blue-400" />
+                  {`Ø ${calculateTeamAverageAge()} Jahre`}
                 </Badge>
               )}
             </div>
@@ -691,7 +692,8 @@ export default function TeamDetailPage() {
                   <span>{spieler.length} Spieler im Team</span>
                   {spieler.length > 0 && (
                     <span className="flex items-center">
-                      <Calendar className="h-4 w-4 mr-1 text-blue-400" />Ø {calculateTeamAverageAge()} Jahre
+                      <Calendar className="h-4 w-4 mr-1 text-blue-400" />
+                      {`Ø ${calculateTeamAverageAge()} Jahre`}
                     </span>
                   )}
                 </CardDescription>
