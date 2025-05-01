@@ -1,3 +1,5 @@
-export default function Loading() {
-  return null
+import { PageLoading } from "@/components/ui/loading"
+
+export default function PlayerStatisticsLoading() {
+  return <PageLoading text="Statistiken werden geladen..." />
 }

@@ -1,9 +1,5 @@
-import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { PageLoading } from "@/components/ui/loading"
 
 export default function TournamentsLoading() {
-  return (
-    <div className="flex justify-center items-center h-[50vh]">
-      <LoadingSpinner size="lg" />
-    </div>
-  )
+  return <PageLoading text="Turniere werden geladen..." />
 }

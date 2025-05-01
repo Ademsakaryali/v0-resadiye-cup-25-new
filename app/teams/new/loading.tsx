@@ -1,5 +1,5 @@
-import { PageLoading } from "@/components/ui/page-loading"
+import { PageLoading } from "@/components/ui/loading"
 
-export default function Loading() {
-  return <PageLoading message="Team-Erstellung wird geladen..." />
+export default function NewTeamLoading() {
+  return <PageLoading text="Formular wird geladen..." />
 }

@@ -1,339 +1,248 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { getSupabaseClient } from "@/lib/supabase/client"
-import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { User, Search, Filter, SortAsc, SortDesc, Grid, List, Calendar } from "lucide-react"
-import { useAuth } from "@/context/auth-context"
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useRouter } from "next/navigation"
+import { getSupabaseClient } from "@/lib/supabase/client"
+import { useAuth } from "@/context/auth-context"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Tabs, TabsContent } from "@/components/ui/tabs"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Loading } from "@/components/ui/loading"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Search, Filter, AlertCircle, UserPlus, Users } from "lucide-react"
 
-export default function SpielerPage() {
+export default function PlayersPage() {
+  const [players, setPlayers] = useState<any[]>([])
+  const [filteredPlayers, setFilteredPlayers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [spieler, setSpieler] = useState<any[]>([])
-  const [filteredSpieler, setFilteredSpieler] = useState<any[]>([])
+  const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
-  const [sortOrder, setSortOrder] = useState<"name_asc" | "name_desc" | "newest" | "oldest">("name_asc")
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+  const [positionFilter, setPositionFilter] = useState<string>("all")
+  const [teamFilter, setTeamFilter] = useState<string>("all")
+  const [teams, setTeams] = useState<any[]>([])
+
   const supabase = getSupabaseClient()
+  const router = useRouter()
   const { user } = useAuth()
 
   useEffect(() => {
-    const fetchSpieler = async () => {
+    const fetchPlayers = async () => {
       try {
-        // Spieler mit Teamzugehörigkeit abrufen
-        const { data, error } = await supabase
-          .from("users")
-          .select(`
-            *,
-            team_spieler:team_spieler(
-              team:team_id(
-                id,
-                name,
-                logo_url
-              )
-            )
-          `)
-          .eq("rolle", "Spieler")
-          .order("nachname", { ascending: true })
+        setLoading(true)
 
-        if (error) {
-          throw error
-        }
+        // Teams abrufen für Filter
+        const { data: teamsData, error: teamsError } = await supabase
+          .from("teams")
+          .select("id, name")
+          .eq("ist_aktiv", true)
+          .order("name")
 
-        // Daten verarbeiten, um das aktuelle Team zu extrahieren
-        const processedData =
-          data?.map((player) => {
-            const currentTeam =
-              player.team_spieler && player.team_spieler.length > 0 ? player.team_spieler[0].team : null
+        if (teamsError) throw teamsError
+        setTeams(teamsData || [])
 
-            return {
-              ...player,
-              currentTeam,
-            }
-          }) || []
+        // Spieler abrufen
+        const { data, error } = await supabase.from("players_with_teams_view").select("*").order("last_name")
 
-        setSpieler(processedData)
-        setFilteredSpieler(processedData)
-      } catch (error) {
+        if (error) throw error
+        setPlayers(data || [])
+        setFilteredPlayers(data || [])
+      } catch (error: any) {
         console.error("Fehler beim Laden der Spieler:", error)
+        setError(error.message || "Ein Fehler ist aufgetreten beim Laden der Spieler.")
       } finally {
         setLoading(false)
       }
     }
 
-    fetchSpieler()
+    fetchPlayers()
   }, [supabase])
 
   useEffect(() => {
-    // Filter und Sortierung anwenden
-    let result = [...spieler]
+    // Filter anwenden
+    let result = [...players]
 
     // Suche anwenden
     if (searchQuery) {
+      const query = searchQuery.toLowerCase()
       result = result.filter(
         (player) =>
-          player.vorname?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          player.nachname?.toLowerCase().includes(searchQuery.toLowerCase()),
+          player.first_name.toLowerCase().includes(query) ||
+          player.last_name.toLowerCase().includes(query) ||
+          player.team_name?.toLowerCase().includes(query),
       )
     }
 
-    // Sortierung anwenden
-    switch (sortOrder) {
-      case "name_asc":
-        result.sort((a, b) => `${a.nachname} ${a.vorname}`.localeCompare(`${b.nachname} ${b.vorname}`))
-        break
-      case "name_desc":
-        result.sort((a, b) => `${b.nachname} ${b.vorname}`.localeCompare(`${a.nachname} ${a.vorname}`))
-        break
-      case "newest":
-        result.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-        break
-      case "oldest":
-        result.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-        break
+    // Position-Filter anwenden
+    if (positionFilter !== "all") {
+      result = result.filter((player) => player.position === positionFilter)
     }
 
-    setFilteredSpieler(result)
-  }, [spieler, searchQuery, sortOrder])
+    // Team-Filter anwenden
+    if (teamFilter !== "all") {
+      result = result.filter((player) => player.team_id === teamFilter)
+    }
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return "Nicht angegeben"
-    return new Date(dateString).toLocaleDateString("de-DE")
+    setFilteredPlayers(result)
+  }, [players, searchQuery, positionFilter, teamFilter])
+
+  const getInitials = (firstName: string, lastName: string) => {
+    return `${firstName?.charAt(0) || ""}${lastName?.charAt(0) || ""}`
   }
 
-  const calculateAge = (dateString: string | null) => {
-    if (!dateString) return "Unbekannt"
-    const birthDate = new Date(dateString)
-    const today = new Date()
-    let age = today.getFullYear() - birthDate.getFullYear()
-    const monthDiff = today.getMonth() - birthDate.getMonth()
+  const getPositionBadge = (position?: string) => {
+    if (!position) return <Badge className="border border-gray-200 dark:border-gray-800">Keine Position</Badge>
 
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--
+    switch (position) {
+      case "Torwart":
+        return <Badge className="bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30">{position}</Badge>
+      case "Abwehr":
+        return <Badge className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/30">{position}</Badge>
+      case "Mittelfeld":
+        return <Badge className="bg-green-500/20 text-green-400 hover:bg-green-500/30">{position}</Badge>
+      case "Sturm":
+        return <Badge className="bg-red-500/20 text-red-400 hover:bg-red-500/30">{position}</Badge>
+      default:
+        return <Badge className="border border-gray-200 dark:border-gray-800">{position}</Badge>
     }
-
-    return age
   }
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[calc(100vh-8rem)]">
-        <LoadingSpinner />
+      <div className="container mx-auto py-8">
+        <Loading fullPage text="Spieler werden geladen..." />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto py-8">
+        <Alert className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-400">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Fehler</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       </div>
     )
   }
 
   return (
-    <div className="container mx-auto px-4 py-4">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-2">
-        {user && user.rolle === "Admin" && (
-          <Button asChild className="bg-primary-600 hover:bg-primary-700">
-            <Link href="/spieler/new">
-              <User className="mr-2 h-4 w-4" />
-              Neuer Spieler
-            </Link>
+    <div className="container mx-auto py-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Spieler</h1>
+          <p className="text-gray-500 dark:text-gray-400">Alle registrierten Spieler und ihre Teamzugehörigkeit</p>
+        </div>
+        {user?.rolle === "Admin" && (
+          <Button onClick={() => router.push("/users/new")} className="mt-4 md:mt-0">
+            <UserPlus className="mr-2 h-4 w-4" />
+            Neuer Spieler
           </Button>
         )}
       </div>
 
-      <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3 mb-4">
-        <div className="flex flex-col md:flex-row gap-3 items-center">
+      {/* Filter und Suche */}
+      <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 mb-6">
+        <div className="flex flex-col md:flex-row gap-4 items-center">
           <div className="relative flex-grow">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
               placeholder="Spieler durchsuchen..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-white dark:bg-gray-900"
+              className="pl-10"
             />
           </div>
-          <div className="flex gap-2">
-            <div className="w-full md:w-48">
-              <Select value={sortOrder} onValueChange={(value) => setSortOrder(value as any)}>
-                <SelectTrigger className="bg-white dark:bg-gray-900">
+          <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+            <div className="w-full sm:w-48">
+              <Select value={teamFilter} onValueChange={setTeamFilter}>
+                <SelectTrigger>
                   <div className="flex items-center">
                     <Filter className="mr-2 h-4 w-4" />
-                    <SelectValue placeholder="Sortieren nach" />
+                    <SelectValue placeholder="Team" />
                   </div>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="name_asc">
-                    <div className="flex items-center">
-                      <SortAsc className="mr-2 h-4 w-4" />
-                      Name (A-Z)
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="name_desc">
-                    <div className="flex items-center">
-                      <SortDesc className="mr-2 h-4 w-4" />
-                      Name (Z-A)
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="newest">Neueste zuerst</SelectItem>
-                  <SelectItem value="oldest">Älteste zuerst</SelectItem>
+                  <SelectItem value="all">Alle Teams</SelectItem>
+                  {teams.map((team) => (
+                    <SelectItem key={team.id} value={team.id}>
+                      {team.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex border rounded-md overflow-hidden">
-              <Button
-                variant={viewMode === "grid" ? "default" : "ghost"}
-                size="icon"
-                onClick={() => setViewMode("grid")}
-                className="rounded-none border-0"
-              >
-                <Grid className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === "list" ? "default" : "ghost"}
-                size="icon"
-                onClick={() => setViewMode("list")}
-                className="rounded-none border-0"
-              >
-                <List className="h-4 w-4" />
-              </Button>
+            <div className="w-full sm:w-48">
+              <Select value={positionFilter} onValueChange={setPositionFilter}>
+                <SelectTrigger>
+                  <div className="flex items-center">
+                    <Filter className="mr-2 h-4 w-4" />
+                    <SelectValue placeholder="Position" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Alle Positionen</SelectItem>
+                  <SelectItem value="Torwart">Torwart</SelectItem>
+                  <SelectItem value="Abwehr">Abwehr</SelectItem>
+                  <SelectItem value="Mittelfeld">Mittelfeld</SelectItem>
+                  <SelectItem value="Sturm">Sturm</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>
       </div>
 
-      {filteredSpieler.length === 0 ? (
-        <Card className="bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <User className="h-12 w-12 text-gray-400 mb-4" />
-            <h3 className="text-lg font-medium">Keine Spieler gefunden</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-              {searchQuery
-                ? "Es wurden keine Spieler gefunden, die Ihren Suchkriterien entsprechen."
-                : "Es wurden noch keine Spieler angelegt."}
-            </p>
-            {user && user.rolle === "Admin" && (
-              <Button className="mt-4" asChild>
-                <Link href="/spieler/new">Ersten Spieler erstellen</Link>
-              </Button>
-            )}
-          </CardContent>
-        </Card>
+      {/* Spielerliste */}
+      {filteredPlayers.length === 0 ? (
+        <div className="text-center py-12">
+          <Users className="mx-auto h-12 w-12 text-gray-400" />
+          <h3 className="mt-4 text-lg font-medium">Keine Spieler gefunden</h3>
+          <p className="mt-2 text-gray-500 dark:text-gray-400">
+            Es wurden keine Spieler gefunden, die den Filterkriterien entsprechen.
+          </p>
+        </div>
       ) : (
-        <Tabs defaultValue={viewMode} value={viewMode} onValueChange={(value) => setViewMode(value as "grid" | "list")}>
-          <TabsContent value="grid" className="mt-0">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {filteredSpieler.map((player) => (
-                <Link href={`/spieler/${player.id}`} key={player.id}>
-                  <Card className="bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-gray-800 hover:shadow-md transition-all duration-200 h-full">
-                    <CardContent className="p-4">
-                      <div className="flex items-center mb-3">
-                        <Avatar className="h-16 w-16 mr-3">
-                          <AvatarImage src={player.profilbild_url || ""} alt={player.vorname} />
-                          <AvatarFallback>
-                            {player.vorname?.charAt(0)}
-                            {player.nachname?.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <h3 className="font-medium text-lg">{`${player.vorname} ${player.nachname}`}</h3>
-                          <div className="flex items-center mt-1">
-                            <Calendar className="h-3 w-3 mr-1 text-gray-500" />
-                            <span className="text-xs text-gray-500">{formatDate(player.geburtsdatum)}</span>
-                            {player.geburtsdatum && (
-                              <span className="text-xs ml-2 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">
-                                {calculateAge(player.geburtsdatum)} Jahre
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {player.currentTeam ? (
-                        <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
-                          <p className="text-xs text-gray-500 mb-2">Aktuelles Team:</p>
-                          <div className="flex items-center">
-                            <div className="h-8 w-8 mr-2 flex-shrink-0">
-                              <img
-                                src={
-                                  player.currentTeam.logo_url || "/placeholder.svg?height=50&width=50&query=soccer team"
-                                }
-                                alt={player.currentTeam.name}
-                                className="h-full w-full object-contain"
-                              />
-                            </div>
-                            <span className="font-medium text-sm">{player.currentTeam.name}</span>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
-                          <p className="text-xs text-gray-500">Kein Team zugewiesen</p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="list" className="mt-0">
-            <div className="bg-white dark:bg-gray-900/60 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Geburtsdatum</TableHead>
-                    <TableHead>Alter</TableHead>
-                    <TableHead>Team</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredSpieler.map((player) => (
-                    <TableRow key={player.id} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                      <TableCell>
-                        <Link href={`/spieler/${player.id}`} className="flex items-center">
-                          <Avatar className="h-10 w-10 mr-2">
-                            <AvatarImage src={player.profilbild_url || ""} alt={player.vorname} />
-                            <AvatarFallback className="text-xs">{`${player.vorname?.charAt(0)}${player.nachname?.charAt(0)}`}</AvatarFallback>
-                          </Avatar>
-                          <span className="font-medium">{`${player.vorname} ${player.nachname}`}</span>
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm">{formatDate(player.geburtsdatum)}</span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm">
-                          {player.geburtsdatum ? `${calculateAge(player.geburtsdatum)} Jahre` : "Unbekannt"}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        {player.currentTeam ? (
-                          <div className="flex items-center">
-                            <div className="h-6 w-6 mr-2 flex-shrink-0">
-                              <img
-                                src={
-                                  player.currentTeam.logo_url || "/placeholder.svg?height=50&width=50&query=soccer team"
-                                }
-                                alt={player.currentTeam.name}
-                                className="h-full w-full object-contain"
-                              />
-                            </div>
-                            <span className="text-sm">{player.currentTeam.name}</span>
-                          </div>
-                        ) : (
-                          <span className="text-sm text-gray-500">Kein Team</span>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </TabsContent>
-        </Tabs>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {filteredPlayers.map((player) => (
+            <Link key={player.id} href={`/spieler/${player.id}`}>
+              <Card className="h-full hover:shadow-md transition-shadow cursor-pointer">
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-start">
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={player.profile_image_url || ""} alt={player.first_name} />
+                      <AvatarFallback>{getInitials(player.first_name, player.last_name)}</AvatarFallback>
+                    </Avatar>
+                    {player.position && <div>{getPositionBadge(player.position)}</div>}
+                  </div>
+                  <CardTitle className="mt-2">
+                    {player.first_name} {player.last_name}
+                  </CardTitle>
+                  <CardDescription>
+                    {player.team_name || "Kein Team"}{" "}
+                    {player.jersey_number && <span className="text-gray-500">#{player.jersey_number}</span>}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="pb-2">
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    <p>Alter: {player.age || "Nicht angegeben"}</p>
+                    {player.nationality && <p>Nationalität: {player.nationality}</p>}
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <div className="w-full flex justify-between items-center text-sm text-gray-500 dark:text-gray-400">
+                    <span>Spiele: {player.matches_played || 0}</span>
+                    <span>Tore: {player.goals || 0}</span>
+                  </div>
+                </CardFooter>
+              </Card>
+            </Link>
+          ))}
+        </div>
       )}
     </div>
   )

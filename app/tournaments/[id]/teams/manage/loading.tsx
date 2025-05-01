@@ -1,10 +1,5 @@
-import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { PageLoading } from "@/components/ui/loading"
 
-export default function TeamsManageLoading() {
-  return (
-    <div className="flex justify-center items-center min-h-[calc(100vh-8rem)]">
-      <LoadingSpinner size="lg" />
-      <span className="ml-2 text-muted-foreground">Teams werden geladen...</span>
-    </div>
-  )
+export default function ManageTeamsLoading() {
+  return <PageLoading text="Turniermannschaften werden geladen..." />
 }
