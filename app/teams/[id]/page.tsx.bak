@@ -1,6 +1,7 @@
 "use client"
 
 import { DialogFooter } from "@/components/ui/dialog"
+
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
@@ -54,22 +55,22 @@ export default function TeamDetailPage() {
   const router = useRouter()
   const { user } = useAuth()
   const supabase = getSupabaseClient()
-  const [team, setTeam] = useState(null)
-  const [spieler, setSpieler] = useState([])
-  const [blanketts, setBlanketts] = useState([])
+  const [team, setTeam] = useState<any>(null)
+  const [spieler, setSpieler] = useState<any[]>([])
+  const [blanketts, setBlanketts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [trainerTeams, setTrainerTeams] = useState([])
+  const [error, setError] = useState<string | null>(null)
+  const [trainerTeams, setTrainerTeams] = useState<any[]>([])
   const [showSpielerDialog, setShowSpielerDialog] = useState(false)
-  const [editingSpieler, setEditingSpieler] = useState(null)
+  const [editingSpieler, setEditingSpieler] = useState<any>(null)
   const [vorname, setVorname] = useState("")
   const [nachname, setNachname] = useState("")
   const [geburtsdatum, setGeburtsdatum] = useState("")
   const [trikotNummer, setTrikotNummer] = useState("")
   const [position, setPosition] = useState("")
   const [saving, setSaving] = useState(false)
-  const [success, setSuccess] = useState(null)
-  const [tournaments, setTournaments] = useState([])
+  const [success, setSuccess] = useState<string | null>(null)
+  const [tournaments, setTournaments] = useState<any[]>([])
   const [showAddPlayerDialog, setShowAddPlayerDialog] = useState(false)
   const [activeTab, setActiveTab] = useState("spieler")
 
@@ -147,8 +148,8 @@ export default function TeamDetailPage() {
       if (tournamentError) throw tournamentError
 
       const activeTeamTournaments = tournamentData
-        .map((item) => item.tournament)
-        .filter((tournament) => tournament.ist_aktiv)
+        .map((item: any) => item.tournament)
+        .filter((tournament: any) => tournament.ist_aktiv)
 
       setTournaments(activeTeamTournaments)
 
@@ -165,7 +166,7 @@ export default function TeamDetailPage() {
           setTrainerTeams(trainerTeamsData)
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Fehler beim Laden der Team-Daten:", error)
       setError(error.message)
     } finally {
@@ -195,7 +196,7 @@ export default function TeamDetailPage() {
     return isTrainer() || isAdmin()
   }
 
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string) => {
     if (!dateString) return "Unbekannt"
     const date = new Date(dateString)
     return new Intl.DateTimeFormat("de-DE", {
@@ -205,7 +206,7 @@ export default function TeamDetailPage() {
     }).format(date)
   }
 
-  const calculateAge = (geburtsdatum) => {
+  const calculateAge = (geburtsdatum: string) => {
     if (!geburtsdatum) return ""
     const heute = new Date()
     const geburtstag = new Date(geburtsdatum)
@@ -217,7 +218,7 @@ export default function TeamDetailPage() {
     return alter
   }
 
-  const getPositionBadge = (position) => {
+  const getPositionBadge = (position: string) => {
     switch (position) {
       case "Torwart":
         return <Badge className="bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30">{position}</Badge>
@@ -228,11 +229,15 @@ export default function TeamDetailPage() {
       case "Sturm":
         return <Badge className="bg-red-500/20 text-red-400 hover:bg-red-500/30">{position}</Badge>
       default:
-        return <Badge className="border-gray-700 text-gray-300">{position}</Badge>
+        return (
+          <Badge variant="outline" className="border-gray-700 text-gray-300">
+            {position}
+          </Badge>
+        )
     }
   }
 
-  const getInitials = (name) => {
+  const getInitials = (name: string) => {
     if (!name) return ""
     return name
       .split(" ")
@@ -259,11 +264,11 @@ export default function TeamDetailPage() {
     router.push(`/teams/${team.id}/blankett`)
   }
 
-  const handleTeamChange = (teamId) => {
+  const handleTeamChange = (teamId: string) => {
     router.push(`/teams/${teamId}`)
   }
 
-  const handleEditSpieler = (spieler) => {
+  const handleEditSpieler = (spieler: any) => {
     // Nur Admins dürfen Spieler bearbeiten
     if (!isAdmin()) return
 
@@ -354,7 +359,7 @@ export default function TeamDetailPage() {
 
       setSuccess("Spieler erfolgreich aktualisiert.")
       setTimeout(() => setSuccess(null), 3000)
-    } catch (error) {
+    } catch (error: any) {
       console.error("Fehler beim Aktualisieren des Spielers:", error)
       setError(error.message)
     } finally {
@@ -362,7 +367,7 @@ export default function TeamDetailPage() {
     }
   }
 
-  const handleRemoveSpieler = async (spielerId) => {
+  const handleRemoveSpieler = async (spielerId: string) => {
     // Nur Admins dürfen Spieler komplett entfernen
     if (!isAdmin()) return
 
@@ -380,7 +385,7 @@ export default function TeamDetailPage() {
 
       setSuccess("Spieler erfolgreich aus dem Team entfernt.")
       setTimeout(() => setSuccess(null), 3000)
-    } catch (error) {
+    } catch (error: any) {
       console.error("Fehler beim Entfernen des Spielers:", error)
       setError(error.message)
     } finally {
@@ -388,7 +393,7 @@ export default function TeamDetailPage() {
     }
   }
 
-  const handleSetVereinlos = async (spielerId) => {
+  const handleSetVereinlos = async (spielerId: string) => {
     // Sowohl Trainer als auch Admins dürfen Spieler als vereinslos setzen
     try {
       setSaving(true)
@@ -408,7 +413,7 @@ export default function TeamDetailPage() {
 
       setSuccess("Spieler erfolgreich als vereinslos gesetzt.")
       setTimeout(() => setSuccess(null), 3000)
-    } catch (error) {
+    } catch (error: any) {
       console.error("Fehler beim Setzen des Spielers als vereinslos:", error)
       setError(error.message)
     } finally {
@@ -444,7 +449,7 @@ export default function TeamDetailPage() {
   if (!team) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Alert>
+        <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Fehler</AlertTitle>
           <AlertDescription>Das angeforderte Team konnte nicht gefunden werden.</AlertDescription>
@@ -483,7 +488,7 @@ export default function TeamDetailPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       {error && (
-        <Alert className="mb-6 bg-red-900/20 border-red-800 text-red-300">
+        <Alert variant="destructive" className="mb-6 bg-red-900/20 border-red-800 text-red-300">
           <AlertCircle className="h-4 w-4 text-red-400" />
           <AlertTitle className="text-red-300">Fehler</AlertTitle>
           <AlertDescription className="text-red-200">{error}</AlertDescription>
@@ -531,6 +536,7 @@ export default function TeamDetailPage() {
               {tournaments.map((tournament) => (
                 <Badge
                   key={tournament.id}
+                  variant="secondary"
                   className="flex items-center gap-1 text-xs sm:text-sm bg-blue-500/20 text-blue-400 hover:bg-blue-500/30"
                 >
                   <Trophy className="h-3 w-3" />
@@ -540,12 +546,12 @@ export default function TeamDetailPage() {
             </div>
 
             <div className="flex flex-wrap gap-2 mt-2 justify-center md:justify-start">
-              <Badge className="flex items-center gap-1 border-gray-700 text-gray-300">
+              <Badge variant="outline" className="flex items-center gap-1 border-gray-700 text-gray-300">
                 <Users className="h-3 w-3 text-blue-400" />
                 {spieler.length} Spieler
               </Badge>
               {calculateTeamAverageAge() > 0 && (
-                <Badge className="flex items-center gap-1 border-gray-700 text-gray-300">
+                <Badge variant="outline" className="flex items-center gap-1 border-gray-700 text-gray-300">
                   <Calendar className="h-3 w-3 text-blue-400" />
                   {`Ø ${calculateTeamAverageAge()} Jahre`}
                 </Badge>
@@ -556,6 +562,7 @@ export default function TeamDetailPage() {
               {canEdit() && (
                 <Button
                   asChild
+                  variant="outline"
                   size="sm"
                   className="h-8 text-xs sm:text-sm border-gray-700 bg-gray-800/50 text-gray-200 hover:bg-gray-700/50 hover:text-blue-400"
                 >
@@ -567,6 +574,7 @@ export default function TeamDetailPage() {
               )}
               {(isTrainer() || isAdmin()) && (
                 <Button
+                  variant="default"
                   size="sm"
                   onClick={handleBlankettClick}
                   className="h-8 text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white"
@@ -579,6 +587,7 @@ export default function TeamDetailPage() {
                 <Dialog open={showAddPlayerDialog} onOpenChange={setShowAddPlayerDialog}>
                   <DialogTrigger asChild>
                     <Button
+                      variant="outline"
                       size="sm"
                       className="h-8 text-xs sm:text-sm border-gray-700 bg-gray-800/50 text-gray-200 hover:bg-gray-700/50 hover:text-blue-400"
                     >
@@ -644,7 +653,7 @@ export default function TeamDetailPage() {
               <Label htmlFor="team-select" className="text-sm text-gray-300">
                 Meine Teams
               </Label>
-              <Select value={params.id} onValueChange={handleTeamChange}>
+              <Select value={params.id as string} onValueChange={handleTeamChange}>
                 <SelectTrigger id="team-select" className="mt-1 bg-gray-800 border-gray-700 text-white">
                   <SelectValue placeholder="Team auswählen" />
                 </SelectTrigger>
@@ -698,6 +707,7 @@ export default function TeamDetailPage() {
                   <p className="mt-2 text-sm text-gray-400">Diesem Team sind noch keine Spieler zugeordnet.</p>
                   {isAdmin() && (
                     <Button
+                      variant="outline"
                       className="mt-4 border-gray-700 bg-gray-800/50 text-gray-200 hover:bg-gray-700/50 hover:text-blue-400"
                       onClick={() => setShowAddPlayerDialog(true)}
                     >
@@ -793,6 +803,7 @@ export default function TeamDetailPage() {
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button
+                                    variant="ghost"
                                     size="icon"
                                     className="h-8 w-8 text-gray-400 hover:text-blue-400 hover:bg-gray-700"
                                   >
@@ -952,6 +963,7 @@ export default function TeamDetailPage() {
 
             <DialogFooter>
               <Button
+                variant="outline"
                 onClick={() => setShowSpielerDialog(false)}
                 className="border-gray-700 bg-gray-800 text-gray-200 hover:bg-gray-700 hover:text-white"
               >
