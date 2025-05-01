@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { LoadingSpinner } from "@/components/ui/loading"
 import { ArrowLeft, Calendar, MapPin, Trophy, Users, Clock, Pencil, AlertCircle, ChevronRight } from "lucide-react"
 import { format } from "date-fns"
 import { de } from "date-fns/locale"
@@ -130,50 +130,26 @@ export default function TournamentDetailsPage() {
       case "Bevorstehend":
         return <Badge className="bg-blue-600 text-white">Bevorstehend</Badge>
       case "Abgeschlossen":
-        return (
-          <Badge variant="outline" className="border-gray-600 text-gray-300">
-            Abgeschlossen
-          </Badge>
-        )
+        return <Badge className="border-gray-600 text-gray-300">Abgeschlossen</Badge>
       case "Inaktiv":
-        return (
-          <Badge variant="secondary" className="bg-gray-700 text-gray-300">
-            Inaktiv
-          </Badge>
-        )
+        return <Badge className="bg-gray-700 text-gray-300">Inaktiv</Badge>
       default:
-        return (
-          <Badge variant="outline" className="border-gray-600 text-gray-300">
-            Unbekannt
-          </Badge>
-        )
+        return <Badge className="border-gray-600 text-gray-300">Unbekannt</Badge>
     }
   }
 
   const getMatchStatusBadge = (match: Match) => {
     switch (match.status) {
       case "geplant":
-        return (
-          <Badge variant="outline" className="border-gray-600 text-gray-300">
-            Geplant
-          </Badge>
-        )
+        return <Badge className="border-gray-600 text-gray-300">Geplant</Badge>
       case "live":
         return <Badge className="bg-red-600 text-white">Live</Badge>
       case "beendet":
-        return (
-          <Badge variant="secondary" className="bg-gray-700 text-gray-300">
-            Beendet
-          </Badge>
-        )
+        return <Badge className="bg-gray-700 text-gray-300">Beendet</Badge>
       case "abgesagt":
-        return <Badge variant="destructive">Abgesagt</Badge>
+        return <Badge className="bg-red-600 text-white">Abgesagt</Badge>
       default:
-        return (
-          <Badge variant="outline" className="border-gray-600 text-gray-300">
-            Unbekannt
-          </Badge>
-        )
+        return <Badge className="border-gray-600 text-gray-300">Unbekannt</Badge>
     }
   }
 
@@ -201,7 +177,7 @@ export default function TournamentDetailsPage() {
             Zurück zur Turnierübersicht
           </Link>
         </Button>
-        <Alert variant="destructive">
+        <Alert className="bg-red-900/20 border-red-800 text-red-300">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Fehler</AlertTitle>
           <AlertDescription>{error || "Turnier konnte nicht geladen werden."}</AlertDescription>

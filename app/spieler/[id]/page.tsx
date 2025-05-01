@@ -8,7 +8,7 @@ import { useAuth } from "@/context/auth-context"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { LoadingSpinner } from "@/components/ui/loading"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { ArrowLeft, AlertCircle, Calendar, User, Users } from "lucide-react"
 
@@ -102,7 +102,7 @@ export default function SpielerDetailPage() {
   if (!spieler) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Alert variant="destructive">
+        <Alert className="bg-red-900/20 border-red-800 text-red-300">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Fehler</AlertTitle>
           <AlertDescription>Der angeforderte Spieler konnte nicht gefunden werden.</AlertDescription>
@@ -164,7 +164,7 @@ export default function SpielerDetailPage() {
 
               {user && user.rolle === "Admin" && (
                 <div className="mt-6">
-                  <Button asChild variant="outline" className="w-full">
+                  <Button asChild className="border border-gray-200 dark:border-gray-800 w-full">
                     <Link href={`/users/${spieler.id}`}>Spieler bearbeiten</Link>
                   </Button>
                 </div>
