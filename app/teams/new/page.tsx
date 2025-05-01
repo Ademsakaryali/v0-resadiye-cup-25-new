@@ -447,6 +447,7 @@ export default function NewTeamPage() {
                   </p>
                 </div>
 
+                {/* Trainer Select with Search and New Trainer Dialog */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="trainer_id" className="font-medium">

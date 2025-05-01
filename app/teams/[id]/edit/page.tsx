@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { getSupabaseClient } from "@/lib/supabase/client"
@@ -15,8 +15,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
-import { AlertCircle, ArrowLeft, Search, Plus, LinkIcon } from "lucide-react"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { AlertCircle, ArrowLeft, Search, Plus, LinkIcon, Info } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
   Dialog,
   DialogContent,
@@ -28,10 +28,10 @@ import {
 } from "@/components/ui/dialog"
 import { Switch } from "@/components/ui/switch"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
-export default function EditTeamPage() {
-  const params = useParams()
+export default function EditTeamPage({ params }: { params: { id: string } }) {
+  const router = useRouter()
   const [formData, setFormData] = useState({
     name: "",
     beschreibung: "",
@@ -60,7 +60,6 @@ export default function EditTeamPage() {
   })
   const [newTrainerError, setNewTrainerError] = useState<string | null>(null)
   const [isCreatingTrainer, setIsCreatingTrainer] = useState(false)
-  const router = useRouter()
   const { user } = useAuth()
   const supabase = getSupabaseClient()
 
@@ -249,6 +248,11 @@ export default function EditTeamPage() {
     }
   }
 
+  const [teamName, setTeamName] = useState("FC Bayern München")
+  const [trainer, setTrainer] = useState("1")
+  const [description, setDescription] = useState("Deutscher Rekordmeister")
+  const [logoUrl, setLogoUrl] = useState("/fc-bayern-munchen-stadium.png")
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -299,7 +303,7 @@ export default function EditTeamPage() {
 
   return (
     <RequireAuth allowedRoles={["Admin"]}>
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="container mx-auto py-6">
         <div className="mb-6">
           <Button variant="ghost" asChild className="mb-4">
             <Link href={`/teams/${params.id}`}>
@@ -307,279 +311,319 @@ export default function EditTeamPage() {
               Zurück zum Team
             </Link>
           </Button>
-          <h1 className="text-3xl font-bold">Team bearbeiten</h1>
+          <h1 className="text-3xl font-bold mb-6">Team bearbeiten</h1>
         </div>
 
-        <Card className="border border-border/50 bg-card/50 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle>Team-Informationen</CardTitle>
-            <CardDescription>Bearbeiten Sie die Informationen des Teams.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {error && (
-              <Alert variant="destructive" className="mb-4">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Teamname *</Label>
-                  <Input
-                    id="name"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                    className="bg-background/50"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="beschreibung">Beschreibung</Label>
-                  <Textarea
-                    id="beschreibung"
-                    name="beschreibung"
-                    value={formData.beschreibung}
-                    onChange={handleChange}
-                    rows={4}
-                    className="bg-background/50"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="logo_url">Team-Logo URL</Label>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <LinkIcon className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input
-                        id="logo_url"
-                        name="logo_url"
-                        value={formData.logo_url}
-                        onChange={handleChange}
-                        placeholder="https://example.com/logo.png"
-                        className="pl-8 bg-background/50"
-                      />
-                    </div>
-                  </div>
-                  {formData.logo_url && isValidUrl(formData.logo_url) && (
-                    <div className="mt-2 flex justify-center">
-                      <div className="relative w-40 h-40 border rounded-md overflow-hidden">
-                        <Image
-                          src={formData.logo_url || "/placeholder.svg"}
-                          alt="Team-Logo Vorschau"
-                          fill
-                          className="object-contain"
-                          onError={() => {
-                            setError("Das Bild konnte nicht geladen werden. Bitte überprüfen Sie die URL.")
-                          }}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-2">
+            <form onSubmit={handleSubmit}>
+              <Card className="border border-border/50 bg-card/50 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle>Team-Informationen</CardTitle>
+                  <CardDescription>Bearbeiten Sie die Informationen des Teams.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {error && (
+                    <Alert variant="destructive" className="mb-4">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                  )}
+                  <div className="space-y-6">
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="name">Teamname *</Label>
+                        <Input
+                          id="name"
+                          name="name"
+                          value={formData.name}
+                          onChange={handleChange}
+                          required
+                          className="bg-background/50"
+                          placeholder="Teamname eingeben"
                         />
                       </div>
-                    </div>
-                  )}
-                  <p className="text-xs text-muted-foreground">
-                    Geben Sie die URL eines Bildes ein (z.B. https://example.com/logo.png)
-                  </p>
-                </div>
 
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="trainer_id">Trainer</Label>
-                    <div className="flex items-center space-x-2">
-                      <Switch id="show-all-users" checked={showAllUsers} onCheckedChange={setShowAllUsers} />
-                      <Label htmlFor="show-all-users" className="text-xs">
-                        Alle Benutzer anzeigen
-                      </Label>
-                    </div>
-                  </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="beschreibung">Beschreibung</Label>
+                        <Textarea
+                          id="beschreibung"
+                          name="beschreibung"
+                          value={formData.beschreibung}
+                          onChange={handleChange}
+                          rows={4}
+                          className="bg-background/50"
+                          placeholder="Beschreibung eingeben"
+                        />
+                      </div>
 
-                  <div className="flex space-x-2">
-                    <div className="relative flex-1">
-                      <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input
-                        placeholder="Trainer suchen..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-8 bg-background/50"
-                      />
-                    </div>
-                    <Dialog open={showNewTrainerDialog} onOpenChange={setShowNewTrainerDialog}>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" className="shrink-0">
-                          <Plus className="h-4 w-4 mr-2" />
-                          Neu
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="sm:max-w-md">
-                        <DialogHeader>
-                          <DialogTitle>Neuen Trainer erstellen</DialogTitle>
-                          <DialogDescription>
-                            Füllen Sie das Formular aus, um einen neuen Trainer zu erstellen.
-                          </DialogDescription>
-                        </DialogHeader>
-                        {newTrainerError && (
-                          <Alert variant="destructive" className="mt-4">
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertDescription>{newTrainerError}</AlertDescription>
-                          </Alert>
+                      <div className="space-y-2">
+                        <Label htmlFor="logo_url">Team-Logo URL</Label>
+                        <div className="flex gap-2">
+                          <div className="relative flex-1">
+                            <LinkIcon className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                              id="logo_url"
+                              name="logo_url"
+                              value={formData.logo_url}
+                              onChange={handleChange}
+                              placeholder="https://example.com/logo.png"
+                              className="pl-8 bg-background/50"
+                            />
+                          </div>
+                        </div>
+                        {formData.logo_url && isValidUrl(formData.logo_url) && (
+                          <div className="mt-2 flex justify-center">
+                            <div className="relative w-40 h-40 border rounded-md overflow-hidden">
+                              <Image
+                                src={formData.logo_url || "/placeholder.svg"}
+                                alt="Team-Logo Vorschau"
+                                fill
+                                className="object-contain"
+                                onError={() => {
+                                  setError("Das Bild konnte nicht geladen werden. Bitte überprüfen Sie die URL.")
+                                }}
+                              />
+                            </div>
+                          </div>
                         )}
-                        <div className="grid gap-4 py-4">
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="vorname">Vorname *</Label>
-                              <Input
-                                id="vorname"
-                                name="vorname"
-                                value={newTrainerData.vorname}
-                                onChange={handleNewTrainerChange}
-                                required
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="nachname">Nachname *</Label>
-                              <Input
-                                id="nachname"
-                                name="nachname"
-                                value={newTrainerData.nachname}
-                                onChange={handleNewTrainerChange}
-                                required
-                              />
-                            </div>
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="email">E-Mail *</Label>
-                            <Input
-                              id="email"
-                              name="email"
-                              type="email"
-                              value={newTrainerData.email}
-                              onChange={handleNewTrainerChange}
-                              required
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="telefonnummer">Telefonnummer</Label>
-                            <Input
-                              id="telefonnummer"
-                              name="telefonnummer"
-                              value={newTrainerData.telefonnummer}
-                              onChange={handleNewTrainerChange}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="password">Passwort *</Label>
-                            <Input
-                              id="password"
-                              name="password"
-                              type="password"
-                              value={newTrainerData.password}
-                              onChange={handleNewTrainerChange}
-                              required
-                            />
+                        <p className="text-xs text-muted-foreground">
+                          Geben Sie die URL eines Bildes ein (z.B. https://example.com/logo.png)
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label htmlFor="trainer_id">Trainer</Label>
+                          <div className="flex items-center space-x-2">
+                            <Switch id="show-all-users" checked={showAllUsers} onCheckedChange={setShowAllUsers} />
+                            <Label htmlFor="show-all-users" className="text-xs">
+                              Alle Benutzer anzeigen
+                            </Label>
                           </div>
                         </div>
-                        <DialogFooter>
-                          <Button type="button" variant="outline" onClick={() => setShowNewTrainerDialog(false)}>
-                            Abbrechen
-                          </Button>
-                          <Button type="button" onClick={handleCreateTrainer} disabled={isCreatingTrainer}>
-                            {isCreatingTrainer ? (
-                              <>
-                                <LoadingSpinner className="mr-2" />
-                                Wird erstellt...
-                              </>
-                            ) : (
-                              "Trainer erstellen"
-                            )}
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
 
-                  <div className="mt-2 border rounded-md divide-y" style={{ maxHeight: "300px", overflowY: "auto" }}>
-                    <div
-                      className={`flex items-center p-3 cursor-pointer hover:bg-muted/30 ${
-                        formData.trainer_id === "" ? "bg-primary/10" : ""
-                      }`}
-                      onClick={() => handleSelectChange("trainer_id", "none")}
-                    >
-                      <div className="flex-1">
-                        <div className="font-medium">Kein Trainer</div>
+                        <div className="flex space-x-2">
+                          <div className="relative flex-1">
+                            <Search className="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                            <Input
+                              placeholder="Trainer suchen..."
+                              value={searchQuery}
+                              onChange={(e) => setSearchQuery(e.target.value)}
+                              className="pl-8 bg-background/50"
+                            />
+                          </div>
+                          <Dialog open={showNewTrainerDialog} onOpenChange={setShowNewTrainerDialog}>
+                            <DialogTrigger asChild>
+                              <Button variant="outline" className="shrink-0">
+                                <Plus className="h-4 w-4 mr-2" />
+                                Neu
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-md">
+                              <DialogHeader>
+                                <DialogTitle>Neuen Trainer erstellen</DialogTitle>
+                                <DialogDescription>
+                                  Füllen Sie das Formular aus, um einen neuen Trainer zu erstellen.
+                                </DialogDescription>
+                              </DialogHeader>
+                              {newTrainerError && (
+                                <Alert variant="destructive" className="mt-4">
+                                  <AlertCircle className="h-4 w-4" />
+                                  <AlertDescription>{newTrainerError}</AlertDescription>
+                                </Alert>
+                              )}
+                              <div className="grid gap-4 py-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div className="space-y-2">
+                                    <Label htmlFor="vorname">Vorname *</Label>
+                                    <Input
+                                      id="vorname"
+                                      name="vorname"
+                                      value={newTrainerData.vorname}
+                                      onChange={handleNewTrainerChange}
+                                      required
+                                    />
+                                  </div>
+                                  <div className="space-y-2">
+                                    <Label htmlFor="nachname">Nachname *</Label>
+                                    <Input
+                                      id="nachname"
+                                      name="nachname"
+                                      value={newTrainerData.nachname}
+                                      onChange={handleNewTrainerChange}
+                                      required
+                                    />
+                                  </div>
+                                </div>
+                                <div className="space-y-2">
+                                  <Label htmlFor="email">E-Mail *</Label>
+                                  <Input
+                                    id="email"
+                                    name="email"
+                                    type="email"
+                                    value={newTrainerData.email}
+                                    onChange={handleNewTrainerChange}
+                                    required
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label htmlFor="telefonnummer">Telefonnummer</Label>
+                                  <Input
+                                    id="telefonnummer"
+                                    name="telefonnummer"
+                                    value={newTrainerData.telefonnummer}
+                                    onChange={handleNewTrainerChange}
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label htmlFor="password">Passwort *</Label>
+                                  <Input
+                                    id="password"
+                                    name="password"
+                                    type="password"
+                                    value={newTrainerData.password}
+                                    onChange={handleNewTrainerChange}
+                                    required
+                                  />
+                                </div>
+                              </div>
+                              <DialogFooter>
+                                <Button type="button" variant="outline" onClick={() => setShowNewTrainerDialog(false)}>
+                                  Abbrechen
+                                </Button>
+                                <Button type="button" onClick={handleCreateTrainer} disabled={isCreatingTrainer}>
+                                  {isCreatingTrainer ? (
+                                    <>
+                                      <LoadingSpinner className="mr-2" />
+                                      Wird erstellt...
+                                    </>
+                                  ) : (
+                                    "Trainer erstellen"
+                                  )}
+                                </Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
+
+                        <div
+                          className="mt-2 border rounded-md divide-y"
+                          style={{ maxHeight: "300px", overflowY: "auto" }}
+                        >
+                          <div
+                            className={`flex items-center p-3 cursor-pointer hover:bg-muted/30 ${
+                              formData.trainer_id === "" ? "bg-primary/10" : ""
+                            }`}
+                            onClick={() => handleSelectChange("trainer_id", "none")}
+                          >
+                            <div className="flex-1">
+                              <div className="font-medium">Kein Trainer</div>
+                            </div>
+                            <div className="flex items-center justify-center w-5 h-5 rounded-full border border-primary">
+                              {formData.trainer_id === "" && <div className="w-3 h-3 rounded-full bg-primary" />}
+                            </div>
+                          </div>
+                          {filteredTrainers.length === 0 ? (
+                            <div className="p-4 text-center text-muted-foreground">Keine Trainer gefunden</div>
+                          ) : (
+                            filteredTrainers.map((trainer) => (
+                              <div
+                                key={trainer.id}
+                                className={`flex items-center p-3 cursor-pointer hover:bg-muted/30 ${
+                                  formData.trainer_id === trainer.id ? "bg-primary/10" : ""
+                                }`}
+                                onClick={() => handleSelectChange("trainer_id", trainer.id)}
+                              >
+                                <div className="flex items-center flex-1">
+                                  <Avatar className="h-8 w-8 mr-3">
+                                    <AvatarFallback className="bg-primary-700 text-white">
+                                      {`${trainer.vorname.charAt(0)}${trainer.nachname.charAt(0)}`}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div>
+                                    <div className="font-medium">{`${trainer.vorname} ${trainer.nachname}`}</div>
+                                    <div className="text-xs text-muted-foreground flex items-center">
+                                      {showAllUsers && trainer.rolle !== "Trainer" && (
+                                        <span className="mr-2">Rolle: {trainer.rolle}</span>
+                                      )}
+                                      {trainer.team && (
+                                        <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                                          Team: {trainer.team}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex items-center justify-center w-5 h-5 rounded-full border border-primary">
+                                  {formData.trainer_id === trainer.id && (
+                                    <div className="w-3 h-3 rounded-full bg-primary" />
+                                  )}
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center justify-center w-5 h-5 rounded-full border border-primary">
-                        {formData.trainer_id === "" && <div className="w-3 h-3 rounded-full bg-primary" />}
+
+                      <div className="flex items-center space-x-2 pt-2">
+                        <Checkbox
+                          id="ist_aktiv"
+                          checked={formData.ist_aktiv}
+                          onCheckedChange={(checked) => handleCheckboxChange("ist_aktiv", checked as boolean)}
+                        />
+                        <Label htmlFor="ist_aktiv">Team ist aktiv</Label>
                       </div>
                     </div>
-                    {filteredTrainers.length === 0 ? (
-                      <div className="p-4 text-center text-muted-foreground">Keine Trainer gefunden</div>
-                    ) : (
-                      filteredTrainers.map((trainer) => (
-                        <div
-                          key={trainer.id}
-                          className={`flex items-center p-3 cursor-pointer hover:bg-muted/30 ${
-                            formData.trainer_id === trainer.id ? "bg-primary/10" : ""
-                          }`}
-                          onClick={() => handleSelectChange("trainer_id", trainer.id)}
-                        >
-                          <div className="flex items-center flex-1">
-                            <Avatar className="h-8 w-8 mr-3">
-                              <AvatarFallback className="bg-primary-700 text-white">
-                                {`${trainer.vorname.charAt(0)}${trainer.nachname.charAt(0)}`}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <div className="font-medium">{`${trainer.vorname} ${trainer.nachname}`}</div>
-                              <div className="text-xs text-muted-foreground flex items-center">
-                                {showAllUsers && trainer.rolle !== "Trainer" && (
-                                  <span className="mr-2">Rolle: {trainer.rolle}</span>
-                                )}
-                                {trainer.team && (
-                                  <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
-                                    Team: {trainer.team}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex items-center justify-center w-5 h-5 rounded-full border border-primary">
-                            {formData.trainer_id === trainer.id && <div className="w-3 h-3 rounded-full bg-primary" />}
-                          </div>
-                        </div>
-                      ))
-                    )}
+                    <CardFooter className="px-0 pt-6">
+                      <Button variant="outline" type="button" onClick={() => router.back()}>
+                        Abbrechen
+                      </Button>
+                      <Button
+                        type="submit"
+                        disabled={isLoading}
+                        className="ml-auto bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-700 hover:to-primary-600"
+                      >
+                        {isLoading ? (
+                          <>
+                            <LoadingSpinner className="mr-2" />
+                            Wird aktualisiert...
+                          </>
+                        ) : (
+                          "Team aktualisieren"
+                        )}
+                      </Button>
+                    </CardFooter>
                   </div>
-                </div>
-
-                <div className="flex items-center space-x-2 pt-2">
-                  <Checkbox
-                    id="ist_aktiv"
-                    checked={formData.ist_aktiv}
-                    onCheckedChange={(checked) => handleCheckboxChange("ist_aktiv", checked as boolean)}
-                  />
-                  <Label htmlFor="ist_aktiv">Team ist aktiv</Label>
-                </div>
-              </div>
-              <CardFooter className="px-0 pt-6">
-                <Button
-                  type="submit"
-                  disabled={isLoading}
-                  className="ml-auto bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-700 hover:to-primary-600"
-                >
-                  {isLoading ? (
-                    <>
-                      <LoadingSpinner className="mr-2" />
-                      Wird aktualisiert...
-                    </>
-                  ) : (
-                    "Team aktualisieren"
-                  )}
-                </Button>
-              </CardFooter>
+                </CardContent>
+              </Card>
             </form>
-          </CardContent>
-        </Card>
+          </div>
+
+          <div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Team-Logo</CardTitle>
+                <CardDescription>Aktuelles Logo des Teams</CardDescription>
+              </CardHeader>
+              <CardContent className="flex justify-center">
+                <Avatar className="h-40 w-40">
+                  <AvatarImage src={formData.logo_url || "/placeholder.svg"} alt={formData.name} />
+                  <AvatarFallback>{formData.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                </Avatar>
+              </CardContent>
+            </Card>
+
+            <Alert className="mt-6">
+              <Info className="h-4 w-4" />
+              <AlertTitle>Logo-Aktualisierung</AlertTitle>
+              <AlertDescription>
+                Um das Logo zu aktualisieren, geben Sie die URL zu einem neuen Bild ein. Das Bild sollte quadratisch
+                sein und eine Mindestgröße von 200x200 Pixeln haben.
+              </AlertDescription>
+            </Alert>
+          </div>
+        </div>
       </div>
     </RequireAuth>
   )
