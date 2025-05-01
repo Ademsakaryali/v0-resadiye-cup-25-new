@@ -79,7 +79,6 @@ const exportData = (filteredPlayers: PlayerStats[], format: string) => {
     toast({
       title: "Keine Daten zum Exportieren",
       description: "Es sind keine Daten vorhanden, die exportiert werden können.",
-      variant: "destructive",
     })
     return
   }
@@ -140,7 +139,6 @@ const exportData = (filteredPlayers: PlayerStats[], format: string) => {
       toast({
         title: "Fehler beim Export",
         description: "Das ausgewählte Format wird nicht unterstützt.",
-        variant: "destructive",
       })
       return
   }
@@ -278,19 +276,19 @@ export default function PlayerStatisticsPage() {
   }
 
   const getPositionBadge = (position?: string) => {
-    if (!position) return <Badge variant="outline">Keine Position</Badge>
+    if (!position) return <Badge className="border-gray-700 text-gray-300">Keine Position</Badge>
 
     switch (position) {
       case "Torwart":
-        return <Badge className="bg-yellow-500 hover:bg-yellow-600">{position}</Badge>
+        return <Badge className="bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30">{position}</Badge>
       case "Abwehr":
-        return <Badge className="bg-blue-500 hover:bg-blue-600">{position}</Badge>
+        return <Badge className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/30">{position}</Badge>
       case "Mittelfeld":
-        return <Badge className="bg-green-500 hover:bg-green-600">{position}</Badge>
+        return <Badge className="bg-green-500/20 text-green-400 hover:bg-green-500/30">{position}</Badge>
       case "Sturm":
-        return <Badge className="bg-red-500 hover:bg-red-600">{position}</Badge>
+        return <Badge className="bg-red-500/20 text-red-400 hover:bg-red-500/30">{position}</Badge>
       default:
-        return <Badge variant="outline">{position}</Badge>
+        return <Badge className="border-gray-700 text-gray-300">{position}</Badge>
     }
   }
 
@@ -346,13 +344,13 @@ export default function PlayerStatisticsPage() {
   if (error) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Alert variant="destructive" className="dark-card">
+        <Alert className="dark-card">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Fehler</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
         <div className="mt-4">
-          <Button asChild variant="outline" className="bg-gray-800 hover:bg-gray-700 text-white">
+          <Button asChild className="bg-gray-800 hover:bg-gray-700 text-white">
             <Link href="/">Zurück zur Startseite</Link>
           </Button>
         </div>
@@ -367,11 +365,7 @@ export default function PlayerStatisticsPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-6">
-        <Button
-          variant="ghost"
-          asChild
-          className="mb-4 text-gray-300 hover:text-blue-400 hover:bg-gray-800 transition-colors"
-        >
+        <Button asChild className="mb-4 text-gray-300 hover:text-blue-400 hover:bg-gray-800 transition-colors">
           <Link href="/spieler">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Zurück zur Spielerübersicht
@@ -395,7 +389,7 @@ export default function PlayerStatisticsPage() {
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="border-gray-700 text-gray-200 bg-gray-800 hover:bg-gray-700">
+              <Button className="border-gray-700 text-gray-200 bg-gray-800 hover:bg-gray-700">
                 <FileDown className="mr-2 h-4 w-4" />
                 Export
               </Button>
