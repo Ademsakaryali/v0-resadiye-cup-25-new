@@ -457,7 +457,7 @@ export default function AdminBlankettPage() {
         )}
 
         {success && (
-          <Alert className="mb-6 border-green-600 text-green-600">
+          <Alert variant="default" className="mb-6 border-green-600 text-green-600">
             <CheckCircle className="h-4 w-4" />
             <AlertTitle>Erfolg</AlertTitle>
             <AlertDescription>{success}</AlertDescription>

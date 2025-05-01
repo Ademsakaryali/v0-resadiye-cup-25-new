@@ -416,7 +416,7 @@ export default function TeamDetailPage() {
   if (!team) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Alert>
+        <Alert variant="default">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Fehler</AlertTitle>
           <AlertDescription>Das angeforderte Team konnte nicht gefunden werden.</AlertDescription>
@@ -455,7 +455,7 @@ export default function TeamDetailPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       {error && (
-        <Alert className="mb-6 bg-red-900/20 border-red-800 text-red-300">
+        <Alert className="mb-6 bg-red-900/20 border-red-800 text-red-300" variant="default">
           <AlertCircle className="h-4 w-4 text-red-400" />
           <AlertTitle className="text-red-300">Fehler</AlertTitle>
           <AlertDescription className="text-red-200">{error}</AlertDescription>
@@ -463,7 +463,7 @@ export default function TeamDetailPage() {
       )}
 
       {success && (
-        <Alert className="mb-6 bg-green-900/20 border-green-800 text-green-300">
+        <Alert className="mb-6 bg-green-900/20 border-green-800 text-green-300" variant="default">
           <AlertCircle className="h-4 w-4 text-green-400" />
           <AlertTitle className="text-green-300">Erfolg</AlertTitle>
           <AlertDescription className="text-green-200">{success}</AlertDescription>

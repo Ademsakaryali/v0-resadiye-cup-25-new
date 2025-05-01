@@ -838,7 +838,7 @@ export default function BlankettDetailPage() {
       )}
 
       {success && (
-        <Alert className="mb-6 border-green-600 text-green-600">
+        <Alert variant="default" className="mb-6 border-green-600 text-green-600">
           <CheckCircle className="h-4 w-4" />
           <AlertTitle>Erfolg</AlertTitle>
           <AlertDescription>{success}</AlertDescription>
@@ -847,7 +847,7 @@ export default function BlankettDetailPage() {
 
       {/* Admin-Hinweis */}
       {isAdmin && blankett.status !== "entwurf" && (
-        <Alert className="mb-6 border-blue-600 text-blue-600 bg-blue-50 dark:bg-blue-900/20">
+        <Alert variant="default" className="mb-6 border-blue-600 text-blue-600 bg-blue-50 dark:bg-blue-900/20">
           <Shield className="h-4 w-4" />
           <AlertTitle>Administrator-Modus</AlertTitle>
           <AlertDescription>
@@ -857,7 +857,7 @@ export default function BlankettDetailPage() {
       )}
 
       {!isAdmin && blankett.status === "genehmigt" && !isFristAbgelaufen && (
-        <Alert className="mb-6 border-green-600 text-green-600 bg-green-50 dark:bg-green-900/20">
+        <Alert variant="default" className="mb-6 border-green-600 text-green-600 bg-green-50 dark:bg-green-900/20">
           <CheckCircle className="h-4 w-4" />
           <AlertTitle>Genehmigtes Blankett</AlertTitle>
           <AlertDescription>
@@ -1013,6 +1013,7 @@ export default function BlankettDetailPage() {
                                         src={
                                           player.currentTeam.logo_url ||
                                           "/placeholder.svg?height=30&width=30&query=soccer team" ||
+                                          "/placeholder.svg" ||
                                           "/placeholder.svg" ||
                                           "/placeholder.svg" ||
                                           "/placeholder.svg" ||
