@@ -4,7 +4,7 @@ type LoadingProps = {
   /** Größe des Spinners: klein, mittel oder groß */
   size?: "sm" | "md" | "lg"
   /** Farbe des Spinners */
-  variant?: "primary" | "white" | "gray"
+  color?: "primary" | "white" | "gray"
   /** Zusätzliche CSS-Klassen */
   className?: string
   /** Text, der neben dem Spinner angezeigt wird */
@@ -20,7 +20,7 @@ type LoadingProps = {
  */
 export function Loading({
   size = "md",
-  variant = "primary",
+  color = "primary",
   className,
   text,
   textPosition = "right",
@@ -34,7 +34,7 @@ export function Loading({
   }
 
   // Farben-Mapping
-  const variantClasses = {
+  const colorClasses = {
     primary: "border-b-primary-600",
     white: "border-b-white",
     gray: "border-b-gray-400",
@@ -49,9 +49,7 @@ export function Loading({
     <div className={cn(containerClasses, className)}>
       <div className="flex items-center gap-3">
         {text && textPosition === "left" && <span className="text-gray-500 dark:text-gray-400">{text}</span>}
-        <div
-          className={cn("animate-spin rounded-full border-transparent", sizeClasses[size], variantClasses[variant])}
-        />
+        <div className={cn("animate-spin rounded-full border-transparent", sizeClasses[size], colorClasses[color])} />
         {text && textPosition === "right" && <span className="text-gray-500 dark:text-gray-400">{text}</span>}
       </div>
     </div>
@@ -65,7 +63,7 @@ export function PageLoading({ text = "Wird geladen..." }: { text?: string }) {
   return (
     <div className="flex justify-center items-center min-h-[calc(100vh-4rem)]">
       <div className="flex flex-col items-center gap-3">
-        <Loading size="lg" variant="primary" />
+        <Loading size="lg" color="primary" />
         <p className="text-gray-500 dark:text-gray-400 animate-pulse">{text}</p>
       </div>
     </div>
@@ -75,10 +73,21 @@ export function PageLoading({ text = "Wird geladen..." }: { text?: string }) {
 /**
  * Einfacher Spinner für Buttons und kleine UI-Elemente
  */
-export function LoadingSpinner({ className = "" }: { className?: string }) {
+export function LoadingSpinner({ className = "", size = "sm" }: { className?: string; size?: "sm" | "md" | "lg" }) {
+  const sizeClasses = {
+    sm: "h-4 w-4",
+    md: "h-6 w-6",
+    lg: "h-8 w-8",
+  }
+
   return (
     <div className={cn("flex justify-center items-center", className)}>
-      <div className="animate-spin rounded-full h-4 w-4 border-2 border-b-2 border-transparent border-b-primary-600"></div>
+      <div
+        className={cn(
+          "animate-spin rounded-full border-2 border-b-2 border-transparent border-b-primary-600",
+          sizeClasses[size],
+        )}
+      ></div>
     </div>
   )
 }
