@@ -21,11 +21,11 @@ import {
   X,
   FileText,
   User,
-  BarChart2,
   Shield,
   UserPlus,
   ChevronRight,
   Table,
+  BarChart2,
 } from "lucide-react"
 
 // Definiere die Navigationsstruktur für alle Benutzer
@@ -50,11 +50,7 @@ const publicNavigationItems = [
     href: "/spieler",
     icon: Users,
   },
-  {
-    title: "Statistiken",
-    href: "/spieler/statistics",
-    icon: BarChart2,
-  },
+  // Statistiken-Menüpunkt entfernt
 ]
 
 // Definiere die Navigationsstruktur für Spieler
@@ -67,17 +63,14 @@ const playerNavigationItems = [
 ]
 
 // Definiere die Navigationsstruktur für Trainer (ohne "Mein Team" - wird dynamisch hinzugefügt)
+// "Blanketts" wurde für Trainer entfernt
 const trainerNavigationItems = [
   {
     title: "Profil",
     href: "/profile",
     icon: User,
   },
-  {
-    title: "Blanketts",
-    href: "/blanketts",
-    icon: FileText,
-  },
+  // Blanketts-Menüpunkt für Trainer entfernt
 ]
 
 // Definiere die Navigationsstruktur für Administratoren

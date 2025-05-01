@@ -39,7 +39,7 @@ export const routes = {
   players: {
     index: "/spieler",
     detail: (id: string) => `/spieler/${id}`,
-    statistics: "/spieler/statistics",
+    // Statistik-Route entfernt
   },
 
   // Users
