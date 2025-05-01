@@ -1,4 +1,3 @@
-// Bestehende Typen beibehalten
 export type User = {
   id: string
   email: string
@@ -78,7 +77,7 @@ export type BlankettEntry = {
   team?: Team
 }
 
-export type BlankettSpieler = {
+export type BlankettSpielerType = {
   id: string
   blankett_id: string
   spieler_id: string

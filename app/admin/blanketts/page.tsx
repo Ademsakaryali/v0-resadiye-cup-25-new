@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { getSupabaseClient } from "@/lib/supabase/client"
-import type { Tournament, BlankettSettings, BlankettEntry } from "@/lib/types"
 import { useAuth } from "@/context/auth-context"
 import { RequireAuth } from "@/components/auth/require-auth"
 import { Button } from "@/components/ui/button"
@@ -20,13 +19,13 @@ export default function AdminBlankettPage() {
   const { user } = useAuth()
   const supabase = getSupabaseClient()
   const [loading, setLoading] = useState(true)
-  const [tournaments, setTournaments] = useState<Tournament[]>([])
-  const [settings, setSettings] = useState<Record<string, BlankettSettings>>({})
-  const [blanketts, setBlanketts] = useState<BlankettEntry[]>([])
+  const [tournaments, setTournaments] = useState([])
+  const [settings, setSettings] = useState({})
+  const [blanketts, setBlanketts] = useState([])
   const [searchQuery, setSearchQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState<string>("alle")
-  const [tournamentFilter, setTournamentFilter] = useState<string>("alle")
-  const [filteredBlanketts, setFilteredBlanketts] = useState<BlankettEntry[]>([])
+  const [statusFilter, setStatusFilter] = useState("alle")
+  const [tournamentFilter, setTournamentFilter] = useState("alle")
+  const [filteredBlanketts, setFilteredBlanketts] = useState([])
 
   useEffect(() => {
     const fetchData = async () => {
@@ -47,8 +46,8 @@ export default function AdminBlankettPage() {
 
         if (settingsError) throw settingsError
 
-        const settingsMap: Record<string, BlankettSettings> = {}
-        settingsData.forEach((setting: BlankettSettings) => {
+        const settingsMap = {}
+        settingsData.forEach((setting) => {
           settingsMap[setting.tournament_id] = setting
         })
         setSettings(settingsMap)
@@ -110,7 +109,7 @@ export default function AdminBlankettPage() {
     setFilteredBlanketts(filtered)
   }, [searchQuery, statusFilter, tournamentFilter, blanketts])
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString) => {
     if (!dateString) return "Unbekannt"
     const date = new Date(dateString)
     return new Intl.DateTimeFormat("de-DE", {
@@ -120,30 +119,26 @@ export default function AdminBlankettPage() {
     }).format(date)
   }
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status) => {
     switch (status) {
       case "entwurf":
-        return (
-          <Badge variant="outline" className="bg-background/50">
-            Entwurf
-          </Badge>
-        )
+        return <Badge className="bg-background/50">Entwurf</Badge>
       case "eingereicht":
-        return <Badge variant="secondary">Eingereicht</Badge>
+        return <Badge>Eingereicht</Badge>
       case "genehmigt":
         return (
-          <Badge variant="default" className="bg-green-600">
+          <Badge className="bg-green-600">
             <CheckCircle className="h-3 w-3 mr-1" /> Genehmigt
           </Badge>
         )
       case "abgelehnt":
         return (
-          <Badge variant="destructive">
+          <Badge className="bg-destructive">
             <AlertCircle className="h-3 w-3 mr-1" /> Abgelehnt
           </Badge>
         )
       default:
-        return <Badge variant="outline">{status}</Badge>
+        return <Badge>{status}</Badge>
     }
   }
 
@@ -287,7 +282,7 @@ export default function AdminBlankettPage() {
                                   {blankett.eingereicht_am ? formatDate(blankett.eingereicht_am) : "-"}
                                 </TableCell>
                                 <TableCell className="text-right">
-                                  <Button asChild size="sm" variant="outline">
+                                  <Button asChild size="sm">
                                     <Link href={`/admin/blanketts/${blankett.id}`}>Details</Link>
                                   </Button>
                                 </TableCell>
@@ -329,7 +324,7 @@ export default function AdminBlankettPage() {
                                   ? `Eingereicht: ${formatDate(blankett.eingereicht_am)}`
                                   : "Noch nicht eingereicht"}
                               </div>
-                              <Button asChild size="sm" variant="outline">
+                              <Button asChild size="sm">
                                 <Link href={`/admin/blanketts/${blankett.id}`}>Details</Link>
                               </Button>
                             </div>

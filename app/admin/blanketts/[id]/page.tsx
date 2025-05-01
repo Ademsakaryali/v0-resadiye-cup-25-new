@@ -4,8 +4,8 @@ import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { getSupabaseClient } from "@/lib/supabase/client"
-import type { Team, Tournament, BlankettEntry, BlankettSettings, BlankettSpieler } from "@/lib/types"
 import { useAuth } from "@/context/auth-context"
+import { RequireAuth } from "@/components/auth/require-auth"
 import { Button } from "@/components/ui/button"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -37,33 +37,27 @@ import {
   ThumbsDown,
 } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { RequireAuth } from "@/components/auth/require-auth"
 
-export default function AdminBlankettDetailPage() {
+export default function AdminBlankettPage() {
   const params = useParams()
   const router = useRouter()
   const { user } = useAuth()
   const supabase = getSupabaseClient()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [team, setTeam] = useState<Team | null>(null)
-  const [tournament, setTournament] = useState<Tournament | null>(null)
-  const [blankett, setBlankett] = useState<BlankettEntry | null>(null)
-  const [settings, setSettings] = useState<BlankettSettings | null>(null)
-  const [blankettSpieler, setBlankettSpieler] = useState<BlankettSpieler[]>([])
-  const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState<string | null>(null)
-  const [showApproveDialog, setShowApproveDialog] = useState(false)
-  const [showRejectDialog, setShowRejectDialog] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [team, setTeam] = useState(null)
+  const [tournament, setTournament] = useState(null)
+  const [blankett, setBlankett] = useState(null)
+  const [settings, setSettings] = useState(null)
+  const [blankettSpieler, setBlankettSpieler] = useState([])
+  const [error, setError] = useState(null)
+  const [success, setSuccess] = useState(null)
+  const [showSubmitDialog, setShowSubmitDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showLockDialog, setShowLockDialog] = useState(false)
-  const [countdown, setCountdown] = useState<{
-    days: number
-    hours: number
-    minutes: number
-    seconds: number
-    expired: boolean
-  } | null>(null)
+  const [countdown, setCountdown] = useState(null)
+  const [showRejectDialog, setShowRejectDialog] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -130,7 +124,7 @@ export default function AdminBlankettDetailPage() {
         if (spielerError) throw spielerError
 
         setBlankettSpieler(spielerData)
-      } catch (error: any) {
+      } catch (error) {
         console.error("Fehler beim Laden der Daten:", error)
         setError(error.message)
       } finally {
@@ -251,9 +245,9 @@ export default function AdminBlankettDetailPage() {
       })
 
       setSuccess("Blankett erfolgreich genehmigt und Spieler in den Mannschaftskader übernommen.")
-      setShowApproveDialog(false)
+      setShowSubmitDialog(false)
       setTimeout(() => setSuccess(null), 3000)
-    } catch (error: any) {
+    } catch (error) {
       console.error("Fehler beim Genehmigen des Blanketts:", error)
       setError(error.message)
     } finally {
@@ -290,7 +284,7 @@ export default function AdminBlankettDetailPage() {
       setSuccess("Blankett erfolgreich abgelehnt.")
       setShowRejectDialog(false)
       setTimeout(() => setSuccess(null), 3000)
-    } catch (error: any) {
+    } catch (error) {
       console.error("Fehler beim Ablehnen des Blanketts:", error)
       setError(error.message)
     } finally {
@@ -320,7 +314,7 @@ export default function AdminBlankettDetailPage() {
       setTimeout(() => {
         router.push("/admin/dashboard")
       }, 2000)
-    } catch (error: any) {
+    } catch (error) {
       console.error("Fehler beim Löschen des Blanketts:", error)
       setError(error.message)
     } finally {
@@ -357,7 +351,7 @@ export default function AdminBlankettDetailPage() {
       setSuccess(newIsLocked ? "Blankett erfolgreich gesperrt." : "Blankett erfolgreich entsperrt.")
       setShowLockDialog(false)
       setTimeout(() => setSuccess(null), 3000)
-    } catch (error: any) {
+    } catch (error) {
       console.error("Fehler beim Sperren/Entsperren des Blanketts:", error)
       setError(error.message)
     } finally {
@@ -365,7 +359,7 @@ export default function AdminBlankettDetailPage() {
     }
   }
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString) => {
     if (!dateString) return "Unbekannt"
     const date = new Date(dateString)
     return new Intl.DateTimeFormat("de-DE", {
@@ -375,13 +369,17 @@ export default function AdminBlankettDetailPage() {
     }).format(date)
   }
 
-  const getInitials = (name: string) => {
+  const getInitials = (name) => {
+    if (!name) return ""
     return name
       .split(" ")
       .map((n) => n[0])
       .join("")
       .toUpperCase()
   }
+
+  // Prüfen, ob die Frist abgelaufen ist
+  const isFristAbgelaufen = countdown?.expired || false
 
   if (loading) {
     return (
@@ -409,14 +407,11 @@ export default function AdminBlankettDetailPage() {
     )
   }
 
-  // Prüfen, ob die Frist abgelaufen ist
-  const isFristAbgelaufen = countdown?.expired || false
-
   return (
     <RequireAuth allowedRoles={["Admin"]}>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         <div className="mb-6">
-          <Button variant="ghost" asChild className="mb-4">
+          <Button asChild className="mb-4">
             <Link href="/admin/dashboard">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Zurück zum Dashboard
@@ -431,14 +426,12 @@ export default function AdminBlankettDetailPage() {
             </div>
             <div className="flex flex-col sm:flex-row gap-2">
               <Badge
-                className={`self-start ${
+                className={`${
                   blankett.status === "genehmigt"
                     ? "bg-green-600"
                     : blankett.status === "abgelehnt"
                       ? "bg-destructive"
-                      : blankett.status === "eingereicht"
-                        ? "bg-secondary"
-                        : "bg-background/50 border"
+                      : "bg-secondary"
                 }`}
               >
                 {blankett.status === "genehmigt" && <CheckCircle className="h-3 w-3 mr-1" />}
@@ -623,18 +616,15 @@ export default function AdminBlankettDetailPage() {
         </Card>
 
         <div className="flex flex-col sm:flex-row gap-3 justify-end mt-8">
-          <Button asChild variant="outline">
+          <Button asChild>
             <Link href="/admin/dashboard">Zurück</Link>
           </Button>
 
           <Dialog open={showLockDialog} onOpenChange={setShowLockDialog}>
             <DialogTrigger asChild>
-              <Button
-                variant="outline"
-                className={blankett.is_locked ? "bg-green-50 text-green-700" : "bg-yellow-50 text-yellow-700"}
-              >
+              <Button className={blankett.is_locked ? "bg-green-600" : "bg-yellow-600"}>
                 {blankett.is_locked ? <Unlock className="mr-2 h-4 w-4" /> : <Lock className="mr-2 h-4 w-4" />}
-                {blankett.is_locked ? "Blankett entsperren" : "Blankett sperren"}
+                {blankett.is_locked ? "Entsperren" : "Sperren"}
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -647,9 +637,7 @@ export default function AdminBlankettDetailPage() {
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setShowLockDialog(false)}>
-                  Abbrechen
-                </Button>
+                <Button onClick={() => setShowLockDialog(false)}>Abbrechen</Button>
                 <Button
                   onClick={handleToggleLockBlankett}
                   disabled={saving}
@@ -669,7 +657,7 @@ export default function AdminBlankettDetailPage() {
 
           <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
             <DialogTrigger asChild>
-              <Button variant="outline" className="bg-destructive/10 text-destructive border-destructive/20">
+              <Button className="bg-destructive text-destructive-foreground">
                 <Trash2 className="mr-2 h-4 w-4" />
                 Blankett löschen
               </Button>
@@ -683,42 +671,15 @@ export default function AdminBlankettDetailPage() {
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
-                  Abbrechen
-                </Button>
-                <Button variant="destructive" onClick={handleDeleteBlankett} disabled={saving}>
+                <Button onClick={() => setShowDeleteDialog(false)}>Abbrechen</Button>
+                <Button className="bg-destructive" onClick={handleDeleteBlankett} disabled={saving}>
                   {saving ? "Wird gelöscht..." : "Löschen"}
                 </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
 
-          <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="bg-destructive/10 text-destructive border-destructive/20">
-                <ThumbsDown className="mr-2 h-4 w-4" />
-                Ablehnen
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Blankett ablehnen</DialogTitle>
-                <DialogDescription>
-                  Sind Sie sicher, dass Sie dieses Blankett ablehnen möchten? Der Trainer kann es dann überarbeiten.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setShowRejectDialog(false)}>
-                  Abbrechen
-                </Button>
-                <Button variant="destructive" onClick={handleRejectBlankett} disabled={saving}>
-                  {saving ? "Wird abgelehnt..." : "Ablehnen"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
-          <Dialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
+          <Dialog open={showSubmitDialog} onOpenChange={setShowSubmitDialog}>
             <DialogTrigger asChild>
               <Button className="bg-green-600 hover:bg-green-700">
                 <ThumbsUp className="mr-2 h-4 w-4" />
@@ -734,11 +695,30 @@ export default function AdminBlankettDetailPage() {
                 </DialogDescription>
               </DialogHeader>
               <DialogFooter>
-                <Button variant="outline" onClick={() => setShowApproveDialog(false)}>
-                  Abbrechen
-                </Button>
-                <Button className="bg-green-600 hover:bg-green-700" onClick={handleApproveBlankett} disabled={saving}>
+                <Button onClick={() => setShowSubmitDialog(false)}>Abbrechen</Button>
+                <Button className="bg-green-600" onClick={handleApproveBlankett} disabled={saving}>
                   {saving ? "Wird genehmigt..." : "Genehmigen"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+            <DialogTrigger asChild>
+              <Button className="bg-red-600 hover:bg-red-700">
+                <ThumbsDown className="mr-2 h-4 w-4" />
+                Ablehnen
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Blankett ablehnen</DialogTitle>
+                <DialogDescription>Sind Sie sicher, dass Sie dieses Blankett ablehnen möchten?</DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button onClick={() => setShowRejectDialog(false)}>Abbrechen</Button>
+                <Button className="bg-red-600" onClick={handleRejectBlankett} disabled={saving}>
+                  {saving ? "Wird abgelehnt..." : "Ablehnen"}
                 </Button>
               </DialogFooter>
             </DialogContent>
