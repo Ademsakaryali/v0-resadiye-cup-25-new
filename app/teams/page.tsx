@@ -6,7 +6,6 @@ import { getSupabaseClient } from "@/lib/supabase/client"
 import type { Team } from "@/lib/types"
 import { useAuth } from "@/context/auth-context"
 import { Button } from "@/components/ui/button"
-import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { Card, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -40,6 +39,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
+import { Loading } from "@/components/ui/loading"
 
 export default function TeamsPage() {
   const [teams, setTeams] = useState<Team[]>([])
@@ -292,11 +292,7 @@ export default function TeamsPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-[calc(100vh-8rem)]">
-        <LoadingSpinner />
-      </div>
-    )
+    return <Loading fullPage size="lg" text="Teams werden geladen..." />
   }
 
   return (

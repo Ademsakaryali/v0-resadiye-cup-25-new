@@ -1,3 +1,4 @@
+// Bestehende Typen beibehalten
 export type User = {
   id: string
   email: string
@@ -102,4 +103,128 @@ export type TeamChangeRequest = {
   updated_at: string
   team?: Team
   trainer?: User
+}
+
+export type PlayerGoal = {
+  id: string
+  tournament_id: string
+  match_id: string
+  player_id: string
+  team_id: string
+  minute?: number
+  is_penalty?: boolean
+  is_own_goal?: boolean
+  created_at: string
+  updated_at: string
+  player?: User
+  team?: Team
+  match?: Match
+}
+
+export type TournamentPlayer = {
+  id: string
+  vorname: string
+  nachname: string
+  geburtsdatum?: string
+  profilbild_url?: string
+  team: Team
+  trikot_nummer?: number
+  position?: string
+  goals_count?: number
+}
+
+// Neue erweiterte Typen für Komponenten
+export interface PageProps {
+  params: { [key: string]: string }
+  searchParams: { [key: string]: string | string[] | undefined }
+}
+
+export interface SelectOption {
+  value: string
+  label: string
+}
+
+export interface FilterState {
+  search?: string
+  status?: string
+  team?: string
+  position?: string
+  sortBy?: string
+  sortDirection?: "asc" | "desc"
+  page?: number
+  pageSize?: number
+}
+
+// Erweiterte Typen für API-Antworten
+export interface ApiResponse<T> {
+  success: boolean
+  data?: T
+  error?: string
+  message?: string
+}
+
+// Erweiterte Typen für Statistiken
+export interface PlayerStatistics extends User {
+  team_name: string
+  team_logo_url?: string
+  team_id: string
+  position?: string
+  jersey_number?: number
+  goals: number
+  matches_played: number
+  minutes_played: number
+  yellow_cards: number
+  red_cards: number
+  assists: number
+  clean_sheets?: number
+  goals_per_match: number
+  minutes_per_goal: number | null
+}
+
+export interface TeamStatistics extends Team {
+  matches_played: number
+  wins: number
+  draws: number
+  losses: number
+  goals_for: number
+  goals_against: number
+  points: number
+  tournament_id: string
+}
+
+// Typen für Tabellen
+export interface StandingsEntry {
+  team_id: string
+  team_name: string
+  team_logo_url?: string
+  matches_played: number
+  wins: number
+  draws: number
+  losses: number
+  goals_for: number
+  goals_against: number
+  goal_difference: number
+  points: number
+}
+
+// Typen für Formulare
+export interface FormField {
+  name: string
+  label: string
+  type: "text" | "email" | "password" | "number" | "date" | "select" | "textarea" | "checkbox" | "radio" | "file"
+  placeholder?: string
+  required?: boolean
+  options?: SelectOption[]
+  defaultValue?: any
+  min?: number
+  max?: number
+  step?: number
+  disabled?: boolean
+  className?: string
+  validation?: ValidationRule[]
+}
+
+export interface ValidationRule {
+  validate: (value: any) => boolean
+  message: string
 }

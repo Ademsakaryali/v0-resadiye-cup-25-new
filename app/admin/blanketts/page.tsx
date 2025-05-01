@@ -16,7 +16,7 @@ import { Calendar, CheckCircle, Clock, FileText, Settings, AlertCircle, Search, 
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select"
 
-export default function BlankettPage() {
+export default function AdminBlankettPage() {
   const { user } = useAuth()
   const supabase = getSupabaseClient()
   const [loading, setLoading] = useState(true)
@@ -288,7 +288,7 @@ export default function BlankettPage() {
                                 </TableCell>
                                 <TableCell className="text-right">
                                   <Button asChild size="sm" variant="outline">
-                                    <Link href={`/blanketts/${blankett.id}`}>Details</Link>
+                                    <Link href={`/admin/blanketts/${blankett.id}`}>Details</Link>
                                   </Button>
                                 </TableCell>
                               </TableRow>
@@ -330,7 +330,7 @@ export default function BlankettPage() {
                                   : "Noch nicht eingereicht"}
                               </div>
                               <Button asChild size="sm" variant="outline">
-                                <Link href={`/blanketts/${blankett.id}`}>Details</Link>
+                                <Link href={`/admin/blanketts/${blankett.id}`}>Details</Link>
                               </Button>
                             </div>
                           </div>
@@ -390,7 +390,7 @@ export default function BlankettPage() {
                   </CardContent>
                   <div className="px-4 pb-4">
                     <Button asChild className="w-full">
-                      <Link href={`/blanketts/settings/${tournament.id}`}>
+                      <Link href={`/admin/blanketts/settings/${tournament.id}`}>
                         <Settings className="mr-2 h-4 w-4" />
                         {settings[tournament.id] ? "Einstellungen bearbeiten" : "Einstellungen erstellen"}
                       </Link>

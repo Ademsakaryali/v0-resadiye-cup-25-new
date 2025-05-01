@@ -22,6 +22,8 @@ export async function POST(request: Request) {
 
     // Überprüfen, ob es sich um eine Blankett-Einreichung handelt
     if (body.type === "blankett_submitted") {
+      // Implementierung für Blankett-Einreichungs-Benachrichtigungen
+      // ...
       const blankettId = body.blankett_id
 
       // Blankett-Details abrufen
@@ -77,11 +79,9 @@ export async function POST(request: Request) {
           await sendTelegramMessage(admin.notification_number, message)
         }
       }
-
-      return NextResponse.json({ success: true })
     }
 
-    return NextResponse.json({ success: false, error: "Unbekannter Benachrichtigungstyp" })
+    return NextResponse.json({ success: true })
   } catch (error) {
     console.error("Fehler beim Verarbeiten der Benachrichtigung:", error)
     return NextResponse.json({ success: false, error: "Interner Serverfehler" }, { status: 500 })

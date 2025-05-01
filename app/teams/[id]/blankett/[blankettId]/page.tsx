@@ -1,5 +1,7 @@
 "use client"
 
+import { DialogFooter } from "@/components/ui/dialog"
+
 import { useEffect, useState, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import Link from "next/link"
@@ -19,7 +21,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -231,13 +232,18 @@ export default function BlankettDetailPage() {
 
         // Verfügbare Spieler abrufen (die noch nicht im Blankett sind)
         const spielerIds = spielerData.map((s: BlankettSpielerType) => s.spieler_id)
-        const { data: verfuegbareData, error: verfuegbareError } = await supabase
-          .from("users")
-          .select("*")
-          .eq("rolle", "Spieler")
-          .eq("ist_aktiv", true)
-          .not("id", "in", spielerIds.length > 0 ? `(${spielerIds.join(",")})` : "(0)")
-          .order("nachname", { ascending: true })
+
+        // Hier ist die Korrektur: Prüfen, ob spielerIds leer ist und entsprechend die Abfrage anpassen
+        let verfuegbareQuery = supabase.from("users").select("*").eq("rolle", "Spieler").eq("ist_aktiv", true)
+
+        // Nur wenn es bereits Spieler im Blankett gibt, filtern wir diese aus
+        if (spielerIds.length > 0) {
+          verfuegbareQuery = verfuegbareQuery.not("id", "in", `(${spielerIds.join(",")})`)
+        }
+
+        const { data: verfuegbareData, error: verfuegbareError } = await verfuegbareQuery.order("nachname", {
+          ascending: true,
+        })
 
         if (verfuegbareError) throw verfuegbareError
 
@@ -1007,6 +1013,8 @@ export default function BlankettDetailPage() {
                                         src={
                                           player.currentTeam.logo_url ||
                                           "/placeholder.svg?height=30&width=30&query=soccer team" ||
+                                          "/placeholder.svg" ||
+                                          "/placeholder.svg" ||
                                           "/placeholder.svg" ||
                                           "/placeholder.svg" ||
                                           "/placeholder.svg"

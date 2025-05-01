@@ -3,41 +3,48 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 
 type LayoutContextType = {
-  sidebarExpanded: boolean
+  isSidebarOpen: boolean
   toggleSidebar: () => void
   isMobile: boolean
+  isTablet: boolean
 }
 
 const LayoutContext = createContext<LayoutContextType | undefined>(undefined)
 
 export function LayoutProvider({ children }: { children: ReactNode }) {
-  const [sidebarExpanded, setSidebarExpanded] = useState(true)
+  const [isSidebarOpen, setSidebarOpen] = useState(true)
   const [isMobile, setIsMobile] = useState(false)
+  const [isTablet, setIsTablet] = useState(false)
 
   useEffect(() => {
-    const checkIfMobile = () => {
-      const mobile = window.innerWidth < 1024
+    const checkScreenSize = () => {
+      const mobile = window.innerWidth < 640
+      const tablet = window.innerWidth >= 640 && window.innerWidth < 1024
       setIsMobile(mobile)
-      // Auf Desktop standardmäßig erweitert, auf Mobil geschlossen
-      setSidebarExpanded(!mobile)
+      setIsTablet(tablet)
+
+      // Auf Desktop standardmäßig erweitert, auf Mobil und Tablet geschlossen
+      setSidebarOpen(!(mobile || tablet))
     }
 
     // Initial call
-    checkIfMobile()
+    checkScreenSize()
 
     // Event-Listener für Größenänderungen
-    window.addEventListener("resize", checkIfMobile)
+    window.addEventListener("resize", checkScreenSize)
 
     // Cleanup
-    return () => window.removeEventListener("resize", checkIfMobile)
+    return () => window.removeEventListener("resize", checkScreenSize)
   }, [])
 
   const toggleSidebar = () => {
-    setSidebarExpanded((prev) => !prev)
+    setSidebarOpen((prev) => !prev)
   }
 
   return (
-    <LayoutContext.Provider value={{ sidebarExpanded, toggleSidebar, isMobile }}>{children}</LayoutContext.Provider>
+    <LayoutContext.Provider value={{ isSidebarOpen, toggleSidebar, isMobile, isTablet }}>
+      {children}
+    </LayoutContext.Provider>
   )
 }
 

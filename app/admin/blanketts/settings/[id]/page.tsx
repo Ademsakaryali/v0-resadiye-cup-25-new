@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { ArrowLeft, Calendar, CheckCircle, AlertCircle, Clock } from "lucide-react"
 
-export default function BlankettSettingsPage() {
+export default function AdminBlankettSettingsPage() {
   const params = useParams()
   const router = useRouter()
   const { user } = useAuth()
@@ -32,7 +32,7 @@ export default function BlankettSettingsPage() {
     ohne_anmeldung: false,
     countdown_aktiv: false,
     countdown_datum: "",
-    countdown_zeit: "12:00", // Neue Standardzeit: 12:00 Uhr
+    countdown_zeit: "12:00", // Standardzeit: 12:00 Uhr
   })
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -222,7 +222,7 @@ export default function BlankettSettingsPage() {
           </p>
           <div className="mt-6">
             <Button asChild>
-              <Link href="/blanketts">Zurück zur Blankett-Übersicht</Link>
+              <Link href="/admin/blanketts">Zurück zur Blankett-Übersicht</Link>
             </Button>
           </div>
         </div>
@@ -235,7 +235,7 @@ export default function BlankettSettingsPage() {
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="mb-4">
           <Button variant="ghost" asChild className="mb-2">
-            <Link href="/blanketts">
+            <Link href="/admin/blanketts">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Zurück zur Blankett-Übersicht
             </Link>

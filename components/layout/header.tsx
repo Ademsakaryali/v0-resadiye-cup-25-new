@@ -1,128 +1,139 @@
 "use client"
 
-import { usePathname } from "next/navigation"
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { useAuth } from "@/context/auth-context"
+import { usePathname } from "next/navigation"
+import { Menu, Bell, User, LogOut, ChevronDown, Settings } from "lucide-react"
 import { useLayout } from "@/context/layout-context"
+import { useAuth } from "@/context/auth-context"
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Bell, ChevronLeft, LogOut, Menu } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+
+// Hilfsfunktion zum Generieren des Seitentitels basierend auf dem Pfad
+function getPageTitle(pathname: string): string {
+  const pathSegments = pathname.split("/").filter(Boolean)
+
+  if (pathSegments.length === 0) {
+    return "Hauptseite"
+  }
+
+  const mainPath = pathSegments[0]
+  const pathTitles: Record<string, string> = {
+    tournaments: "Turniere",
+    teams: "Mannschaften",
+    spieler: "Spieler",
+    spiele: "Spielplan",
+    blanketts: "Blanketts",
+    users: "Benutzer",
+    admin: "Administration",
+    profile: "Profil",
+  }
+
+  return pathTitles[mainPath] || mainPath.charAt(0).toUpperCase() + mainPath.slice(1)
+}
 
 export function Header() {
-  const pathname = usePathname()
+  const { toggleSidebar } = useLayout()
   const { user, signOut } = useAuth()
-  const { sidebarExpanded, toggleSidebar, isMobile } = useLayout()
+  const pathname = usePathname()
+  const [mounted, setMounted] = useState(false)
+  const [pageTitle, setPageTitle] = useState("Hauptseite")
 
-  // Funktion, um den aktuellen Seitentitel zu ermitteln
-  const getPageTitle = () => {
-    if (pathname === "/") return "Hauptseite"
-    if (pathname.startsWith("/teams")) return "Teams"
-    if (pathname.startsWith("/tournaments")) return "Turniere"
-    if (pathname.startsWith("/blanketts")) return "Blanketts"
-    if (pathname.startsWith("/users")) return "Benutzerverwaltung"
-    if (pathname.startsWith("/setup")) return "Setup"
-    if (pathname.startsWith("/spieler")) return "Spieler"
-    if (pathname.startsWith("/admin/dashboard")) return "Admin Dashboard"
-    if (pathname.startsWith("/profile")) return "Mein Profil"
-    return "Resadiye Cup"
-  }
+  useEffect(() => {
+    setMounted(true)
+    setPageTitle(getPageTitle(pathname))
+  }, [pathname])
 
-  // Funktion, um zu prüfen, ob wir uns auf einer Unterseite befinden
-  const isSubPage = () => {
-    const segments = pathname.split("/").filter(Boolean)
-    return segments.length > 1
-  }
+  if (!mounted) return null
 
-  // Funktion, um den Pfad zur übergeordneten Seite zu ermitteln
-  const getParentPath = () => {
-    const segments = pathname.split("/").filter(Boolean)
-    if (segments.length <= 1) return "/"
-    return `/${segments[0]}`
-  }
-
-  const getInitials = () => {
-    if (!user) return "G"
-    return `${user.vorname.charAt(0)}${user.nachname.charAt(0)}`
-  }
+  const userInitials = user?.email
+    ? user.email.substring(0, 2).toUpperCase()
+    : user?.vorname && user?.nachname
+      ? `${user.vorname[0]}${user.nachname[0]}`.toUpperCase()
+      : "GU"
 
   return (
-    <header className="sticky top-0 z-30 w-full border-b bg-white/95 dark:bg-gray-900/95 backdrop-blur supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-gray-900/60">
-      <div className="flex h-14 items-center justify-between px-4">
-        <div className="flex items-center gap-2">
-          {/* Mobile Toggle Button */}
-          {isMobile && (
-            <Button variant="ghost" size="icon" onClick={toggleSidebar} className="lg:hidden">
-              <Menu className="h-5 w-5" />
-            </Button>
-          )}
+    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b bg-gray-950 border-gray-800 px-4 shadow-sm">
+      <div className="flex items-center">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleSidebar}
+          className="mr-2 lg:hidden text-gray-300 hover:text-white hover:bg-gray-800"
+          aria-label="Menü öffnen"
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
+        <h1 className="text-xl font-semibold text-white">{pageTitle}</h1>
+      </div>
 
-          {/* Desktop Toggle Button - nur anzeigen, wenn nicht mobil */}
-          {!isMobile && (
-            <Button variant="ghost" size="icon" onClick={toggleSidebar} className="hidden lg:flex">
-              <Menu className="h-5 w-5" />
-            </Button>
-          )}
-
-          {/* Zurück-Button für Unterseiten */}
-          {isSubPage() && (
-            <Button variant="ghost" size="icon" asChild className="mr-2">
-              <Link href={getParentPath()}>
-                <ChevronLeft className="h-5 w-5" />
-              </Link>
-            </Button>
-          )}
-
-          {/* Seitentitel */}
-          <h1 className="text-xl font-semibold">{getPageTitle()}</h1>
-        </div>
-
-        <div className="flex items-center space-x-4">
-          {user && (
-            <Button variant="ghost" size="icon">
+      <div className="flex items-center space-x-4">
+        {user ? (
+          <>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Benachrichtigungen"
+              className="relative text-gray-300 hover:text-white hover:bg-gray-800"
+            >
               <Bell className="h-5 w-5" />
+              <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-red-500"></span>
             </Button>
-          )}
 
-          {user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={user.profilbild_url || ""} alt={user.vorname} />
-                    <AvatarFallback>{getInitials()}</AvatarFallback>
+                <Button
+                  variant="ghost"
+                  className="flex items-center space-x-2 text-gray-300 hover:text-white hover:bg-gray-800"
+                >
+                  <Avatar className="h-8 w-8 border border-gray-700">
+                    <AvatarImage src={user.profilbild_url || ""} alt={user.email || user.vorname || "Benutzer"} />
+                    <AvatarFallback className="bg-blue-600 text-white">{userInitials}</AvatarFallback>
                   </Avatar>
+                  <span className="hidden md:inline-block">
+                    {user.vorname && user.nachname ? `${user.vorname} ${user.nachname}` : user.email}
+                  </span>
+                  <ChevronDown className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <div className="flex items-center justify-start gap-2 p-2">
-                  <div className="flex flex-col space-y-1 leading-none">
-                    <p className="font-medium">{`${user.vorname} ${user.nachname}`}</p>
-                    <p className="text-sm text-muted-foreground">{user.email}</p>
-                  </div>
-                </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/profile">Mein Profil</Link>
+              <DropdownMenuContent align="end" className="w-56 bg-gray-900 border-gray-700">
+                <DropdownMenuLabel className="text-gray-300">Mein Konto</DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-gray-700" />
+                <DropdownMenuItem asChild className="text-gray-200 focus:bg-gray-800 focus:text-white">
+                  <Link href="/profile" className="flex w-full cursor-pointer items-center">
+                    <User className="mr-2 h-4 w-4 text-blue-400" />
+                    <span>Profil</span>
+                  </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => signOut()} className="cursor-pointer">
+                {user.rolle === "Admin" && (
+                  <DropdownMenuItem asChild className="text-gray-200 focus:bg-gray-800 focus:text-white">
+                    <Link href="/admin/dashboard" className="flex w-full cursor-pointer items-center">
+                      <Settings className="mr-2 h-4 w-4 text-blue-400" />
+                      <span>Dashboard</span>
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator className="bg-gray-700" />
+                <DropdownMenuItem onClick={signOut} className="text-red-400 focus:bg-gray-800 focus:text-red-300">
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Abmelden</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          ) : (
-            <Button asChild variant="default" size="sm">
-              <Link href="/login">Anmelden</Link>
-            </Button>
-          )}
-        </div>
+          </>
+        ) : (
+          <Button asChild variant="default" size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Link href="/login">Anmelden</Link>
+          </Button>
+        )}
       </div>
     </header>
   )

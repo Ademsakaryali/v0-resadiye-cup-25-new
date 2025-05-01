@@ -1,357 +1,374 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { useAuth } from "@/context/auth-context"
+import { usePathname, useParams } from "next/navigation"
+import { cn } from "@/lib/utils"
 import { useLayout } from "@/context/layout-context"
+import { useAuth } from "@/context/auth-context"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
+import { getSupabaseClient } from "@/lib/supabase/client"
 import {
-  Users,
-  UserCog,
-  Menu,
-  ChevronLeft,
-  LogOut,
-  FileText,
-  Shield,
-  Trophy,
-  UserCircle,
-  Settings,
   Home,
+  Users,
+  Trophy,
+  Calendar,
+  Settings,
+  Menu,
+  X,
+  FileText,
+  User,
+  BarChart2,
+  Shield,
+  UserPlus,
+  ChevronRight,
+  Table,
 } from "lucide-react"
-import { cn } from "@/lib/utils"
+
+// Definiere die Navigationsstruktur für alle Benutzer
+const publicNavigationItems = [
+  {
+    title: "Hauptseite",
+    href: "/",
+    icon: Home,
+  },
+  {
+    title: "Turniere",
+    href: "/tournaments",
+    icon: Trophy,
+  },
+  {
+    title: "Teams",
+    href: "/teams",
+    icon: Shield,
+  },
+  {
+    title: "Spieler",
+    href: "/spieler",
+    icon: Users,
+  },
+  {
+    title: "Statistiken",
+    href: "/spieler/statistics",
+    icon: BarChart2,
+  },
+]
+
+// Definiere die Navigationsstruktur für Spieler
+const playerNavigationItems = [
+  {
+    title: "Profil",
+    href: "/profile",
+    icon: User,
+  },
+]
+
+// Definiere die Navigationsstruktur für Trainer (ohne "Mein Team" - wird dynamisch hinzugefügt)
+const trainerNavigationItems = [
+  {
+    title: "Profil",
+    href: "/profile",
+    icon: User,
+  },
+  {
+    title: "Blanketts",
+    href: "/blanketts",
+    icon: FileText,
+  },
+]
+
+// Definiere die Navigationsstruktur für Administratoren
+const adminNavigationItems = [
+  {
+    title: "Dashboard",
+    href: "/admin/dashboard",
+    icon: Settings,
+  },
+  {
+    title: "Profil",
+    href: "/profile",
+    icon: User,
+  },
+  {
+    title: "Benutzer",
+    href: "/users",
+    icon: UserPlus,
+  },
+  {
+    title: "Blanketts",
+    href: "/admin/blanketts",
+    icon: FileText,
+  },
+]
+
+// Definiere die Navigationsstruktur für Turnier-spezifische Navigation
+const getTournamentNavigationItems = (tournamentId: string) => [
+  {
+    title: "Turnierübersicht",
+    href: `/tournaments/${tournamentId}`,
+    icon: Trophy,
+  },
+  {
+    title: "Turniermannschaften",
+    href: `/tournaments/${tournamentId}/teams`,
+    icon: Shield,
+  },
+  {
+    title: "Turnierspieler",
+    href: `/tournaments/${tournamentId}/players`,
+    icon: Users,
+  },
+  {
+    title: "Turnierstatistiken",
+    href: `/tournaments/${tournamentId}/statistics`,
+    icon: BarChart2,
+  },
+  {
+    title: "Tabellen",
+    href: `/tournaments/${tournamentId}/standings`,
+    icon: Table,
+  },
+  {
+    title: "Spiele",
+    href: `/tournaments/${tournamentId}/schedule`,
+    icon: Calendar,
+  },
+]
+
+type NavItemProps = {
+  item: {
+    title: string
+    href: string
+    icon: React.ElementType
+  }
+  isActive: boolean
+  onClick?: () => void
+}
+
+// Extrahiere NavItem als separate Komponente für bessere Wartbarkeit
+const NavItem = ({ item, isActive, onClick }: NavItemProps) => {
+  return (
+    <li>
+      <Link
+        href={item.href}
+        className={cn(
+          "flex items-center px-4 py-2.5 text-sm font-medium rounded-md transition-colors",
+          isActive ? "bg-gray-800 text-white" : "text-gray-300 hover:bg-gray-800 hover:text-white",
+        )}
+        onClick={onClick}
+      >
+        <item.icon className="mr-3 h-5 w-5" />
+        <span>{item.title}</span>
+        {isActive && <ChevronRight className="ml-auto h-4 w-4 text-gray-400" />}
+      </Link>
+    </li>
+  )
+}
+
+// Komponente für einen Navigationsbereich mit Titel
+const NavSection = ({
+  title,
+  items,
+  pathname,
+  onClick,
+}: {
+  title: string
+  items: Array<{
+    title: string
+    href: string
+    icon: React.ElementType
+  }>
+  pathname: string
+  onClick?: () => void
+}) => {
+  if (items.length === 0) return null
+
+  return (
+    <div className="mt-6 pt-6 border-t border-gray-800">
+      <h3 className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">{title}</h3>
+      <ul className="space-y-1">
+        {items.map((item) => {
+          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
+          return <NavItem key={item.href} item={item} isActive={isActive} onClick={onClick} />
+        })}
+      </ul>
+    </div>
+  )
+}
 
 export function Sidebar() {
   const pathname = usePathname()
-  const { user, signOut, trainerTeam } = useAuth()
-  const { sidebarExpanded, toggleSidebar, isMobile } = useLayout()
-  const [isOpen, setIsOpen] = useState(false)
+  const params = useParams()
+  const { isSidebarOpen, toggleSidebar } = useLayout()
+  const { user } = useAuth()
+  const [mounted, setMounted] = useState(false)
+  const [activeTournamentId, setActiveTournamentId] = useState<string | null>(null)
+  const [trainerTeam, setTrainerTeam] = useState<{ id: string; name: string } | null>(null)
+  const [isLoadingTeam, setIsLoadingTeam] = useState(false)
 
-  // Schließe die mobile Sidebar, wenn sich der Pfad ändert
-  useEffect(() => {
-    if (isMobile) {
-      setIsOpen(false)
+  // Funktion zum Abrufen des Teams des Trainers
+  const fetchTrainerTeam = async () => {
+    if (user?.rolle !== "Trainer" || !user?.id) return
+
+    try {
+      setIsLoadingTeam(true)
+      const supabase = getSupabaseClient()
+      const { data, error } = await supabase
+        .from("teams")
+        .select("id, name")
+        .eq("trainer_id", user.id)
+        .eq("ist_aktiv", true)
+        .single()
+
+      if (error) {
+        console.error("Fehler beim Abrufen des Trainer-Teams:", error)
+        return
+      }
+
+      if (data) {
+        setTrainerTeam(data)
+      }
+    } catch (error) {
+      console.error("Fehler beim Abrufen des Trainer-Teams:", error)
+    } finally {
+      setIsLoadingTeam(false)
     }
-  }, [pathname, isMobile])
-
-  const toggleMobileSidebar = () => {
-    setIsOpen(!isOpen)
   }
 
-  const isActive = (path: string) => {
-    return pathname === path || pathname?.startsWith(`${path}/`)
+  useEffect(() => {
+    setMounted(true)
+
+    // Prüfe, ob wir uns auf einer Turnierseite befinden
+    if (params && params.id && pathname.includes("/tournaments/")) {
+      setActiveTournamentId(params.id as string)
+    } else {
+      setActiveTournamentId(null)
+    }
+
+    // Rufe das Team des Trainers ab, wenn der Benutzer ein Trainer ist
+    if (user?.rolle === "Trainer") {
+      fetchTrainerTeam()
+    }
+  }, [pathname, params, user])
+
+  if (!mounted) return null
+
+  // Generiere Turnier-Navigation, wenn wir auf einer Turnierseite sind
+  const tournamentNavItems = activeTournamentId ? getTournamentNavigationItems(activeTournamentId) : []
+
+  // Bestimme rollenspezifische Navigationsitems
+  let roleSpecificItems: Array<{
+    title: string
+    href: string
+    icon: React.ElementType
+  }> = []
+  let roleSectionTitle = ""
+
+  if (user) {
+    if (user.rolle === "Admin") {
+      roleSpecificItems = adminNavigationItems
+      roleSectionTitle = "Administrator"
+    } else if (user.rolle === "Trainer") {
+      // Kopiere die Basis-Navigationsitems für Trainer
+      roleSpecificItems = [...trainerNavigationItems]
+
+      // Füge "Mein Team" hinzu, wenn ein Team gefunden wurde
+      if (trainerTeam) {
+        roleSpecificItems.unshift({
+          title: "Mein Team",
+          href: `/teams/${trainerTeam.id}`,
+          icon: Shield,
+        })
+      }
+
+      roleSectionTitle = "Trainer"
+    } else if (user.rolle === "Spieler") {
+      roleSpecificItems = playerNavigationItems
+      roleSectionTitle = "Spieler"
+    }
   }
 
-  // Öffentliche Menüpunkte für alle Benutzer
-  const publicMenuItems = [
-    {
-      title: "Hauptseite",
-      icon: Home,
-      path: "/",
-    },
-    {
-      title: "Teams",
-      icon: Users,
-      path: "/teams",
-    },
-    {
-      title: "Spieler",
-      icon: UserCircle,
-      path: "/spieler",
-    },
-    {
-      title: "Turniere",
-      icon: Trophy,
-      path: "/tournaments",
-    },
-  ]
-
-  // Menüpunkte für Trainer
-  const trainerMenuItems =
-    user?.rolle === "Trainer"
-      ? [
-          {
-            title: "Mein Team",
-            icon: Users,
-            path: `/teams/${trainerTeam?.id || user?.team_id}`,
-            logo: trainerTeam?.logo_url,
-          },
-          {
-            title: "Mein Profil",
-            icon: UserCircle,
-            path: "/profile",
-          },
-        ]
-      : []
-
-  // Menüpunkte für Administratoren
-  const adminMenuItems =
-    user?.rolle === "Admin"
-      ? [
-          {
-            title: "Admin Dashboard",
-            icon: Shield,
-            path: "/admin/dashboard",
-          },
-          {
-            title: "Benutzer",
-            icon: UserCog,
-            path: "/users",
-          },
-          {
-            title: "Blanketts",
-            icon: FileText,
-            path: "/blanketts",
-          },
-          {
-            title: "Einstellungen",
-            icon: Settings,
-            path: "/settings",
-          },
-        ]
-      : []
-
-  // Rendert einen Menüpunkt
-  const renderMenuItem = (item, isMobileView = false) => (
-    <Link
-      key={item.path}
-      href={item.path}
-      className={cn(
-        "flex items-center gap-3 rounded-md text-sm transition-colors",
-        isMobileView ? "px-3 py-3" : sidebarExpanded ? "px-3 py-2" : "justify-center py-2",
-        isActive(item.path) ? "bg-primary text-primary-foreground" : "hover:bg-secondary/50",
-      )}
-      title={!sidebarExpanded && !isMobileView ? item.title : undefined}
-      onClick={isMobileView ? toggleMobileSidebar : undefined}
-    >
-      {item.logo && (sidebarExpanded || isMobileView) ? (
-        <div className="h-5 w-5 rounded-full overflow-hidden flex-shrink-0">
-          <img src={item.logo || "/placeholder.svg"} alt={item.title} className="h-full w-full object-cover" />
-        </div>
-      ) : (
-        <item.icon className="h-5 w-5 flex-shrink-0" />
-      )}
-      {(sidebarExpanded || isMobileView) && <span>{item.title}</span>}
-    </Link>
-  )
-
-  // Rendert eine Gruppe von Menüpunkten mit optionalem Titel
-  const renderMenuGroup = (items, title, isMobileView = false) => {
-    if (items.length === 0) return null
-
-    return (
-      <div className="space-y-1">
-        {title && (sidebarExpanded || isMobileView) && (
-          <h3 className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">{title}</h3>
-        )}
-        {items.map((item) => renderMenuItem(item, isMobileView))}
-      </div>
-    )
+  const handleItemClick = () => {
+    if (window.innerWidth < 1024) {
+      toggleSidebar()
+    }
   }
 
   return (
     <>
-      {/* Mobile Menü-Button */}
-      <div className="fixed top-4 left-4 z-50 lg:hidden">
-        <Button
-          variant="outline"
-          size="icon"
-          className="rounded-full bg-background/80 backdrop-blur-sm"
-          onClick={toggleMobileSidebar}
-        >
-          {isOpen ? <ChevronLeft className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </Button>
-      </div>
-
-      {/* Overlay für Mobile */}
-      {isOpen && isMobile && (
-        <div
-          className="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm lg:hidden"
-          onClick={toggleMobileSidebar}
-        ></div>
+      {/* Mobile Overlay */}
+      {isSidebarOpen && (
+        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={toggleSidebar} aria-hidden="true" />
       )}
 
-      {/* Desktop Sidebar */}
-      <div
-        className={cn(
-          "h-screen flex-shrink-0 transition-all duration-300 ease-in-out",
-          sidebarExpanded ? "w-64" : "w-16",
-          isMobile && "hidden lg:block",
-        )}
-      >
-        <div
-          className={cn(
-            "fixed top-0 left-0 z-40 h-full bg-card/95 backdrop-blur-sm border-r border-border/40 transition-all duration-300 ease-in-out",
-            sidebarExpanded ? "w-64" : "w-16",
-          )}
-        >
-          <div className="flex flex-col h-full">
-            {/* Logo und Titel */}
-            <div className="flex items-center justify-between p-4 border-b border-border/40 h-14">
-              <Link href="/" className="flex items-center gap-2">
-                <img src="/abstract-geometric-logo.png" alt="Logo" className="h-6 w-6" />
-                {sidebarExpanded && <span className="font-bold text-lg">Resadiye Cup</span>}
-              </Link>
-              <Button variant="ghost" size="icon" onClick={toggleSidebar} className="hidden lg:flex">
-                <ChevronLeft className={cn("h-5 w-5 transition-transform", !sidebarExpanded && "rotate-180")} />
-              </Button>
-            </div>
-
-            {/* Menüpunkte */}
-            <ScrollArea className="flex-1 py-2">
-              <nav className="space-y-4 px-2">
-                {/* Öffentliche Menüpunkte */}
-                {renderMenuGroup(publicMenuItems)}
-
-                {/* Trainer-Menüpunkte */}
-                {trainerMenuItems.length > 0 && (
-                  <>
-                    <Separator className={sidebarExpanded ? "mx-3" : "mx-auto w-4"} />
-                    {renderMenuGroup(trainerMenuItems, "Trainer-Bereich")}
-                  </>
-                )}
-
-                {/* Admin-Menüpunkte */}
-                {adminMenuItems.length > 0 && (
-                  <>
-                    <Separator className={sidebarExpanded ? "mx-3" : "mx-auto w-4"} />
-                    {renderMenuGroup(adminMenuItems, "Administration")}
-                  </>
-                )}
-              </nav>
-            </ScrollArea>
-
-            {/* Benutzerbereich */}
-            <div className="border-t border-border/40 p-4">
-              {user ? (
-                <div className={cn("flex items-center", sidebarExpanded ? "justify-between" : "justify-center")}>
-                  {sidebarExpanded ? (
-                    <>
-                      <div className="flex items-center gap-2">
-                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                          {user.profilbild_url ? (
-                            <img
-                              src={user.profilbild_url || "/placeholder.svg"}
-                              alt={`${user.vorname} ${user.nachname}`}
-                              className="h-8 w-8 rounded-full object-cover"
-                            />
-                          ) : (
-                            <UserCircle className="h-5 w-5 text-primary" />
-                          )}
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium truncate max-w-[140px]">
-                            {user.vorname} {user.nachname}
-                          </span>
-                          <span className="text-xs text-muted-foreground">{user.rolle}</span>
-                        </div>
-                      </div>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={signOut} title="Abmelden">
-                        <LogOut className="h-4 w-4" />
-                      </Button>
-                    </>
-                  ) : (
-                    <Button variant="ghost" size="icon" onClick={signOut} title="Abmelden">
-                      <LogOut className="h-5 w-5" />
-                    </Button>
-                  )}
-                </div>
-              ) : (
-                <Button
-                  asChild
-                  variant="outline"
-                  className={cn(sidebarExpanded ? "w-full" : "w-8 h-8 p-0 mx-auto")}
-                  title={!sidebarExpanded ? "Anmelden" : undefined}
-                >
-                  <Link href="/login">{sidebarExpanded ? "Anmelden" : <UserCircle className="h-5 w-5" />}</Link>
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile Sidebar */}
+      {/* Sidebar */}
       <aside
         className={cn(
-          "fixed top-0 left-0 z-50 h-full w-64 bg-card/95 backdrop-blur-sm border-r border-border/40 transition-transform duration-300 ease-in-out",
-          isOpen ? "translate-x-0" : "-translate-x-full",
-          "lg:hidden",
+          "fixed top-0 left-0 z-50 h-full w-64 bg-gray-900 text-white transition-transform duration-300 ease-in-out lg:relative lg:z-0",
+          isSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
         )}
       >
-        <div className="flex flex-col h-full">
-          {/* Logo und Titel */}
-          <div className="flex items-center justify-between p-4 border-b border-border/40 h-14">
-            <Link href="/" className="flex items-center gap-2">
-              <img src="/abstract-geometric-logo.png" alt="Logo" className="h-6 w-6" />
-              <span className="font-bold text-lg">Resadiye Cup</span>
-            </Link>
-            <Button variant="ghost" size="icon" onClick={toggleMobileSidebar}>
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-          </div>
-
-          {/* Menüpunkte */}
-          <ScrollArea className="flex-1 py-2">
-            <nav className="space-y-4 px-2">
-              {/* Öffentliche Menüpunkte */}
-              {renderMenuGroup(publicMenuItems, null, true)}
-
-              {/* Trainer-Menüpunkte */}
-              {trainerMenuItems.length > 0 && (
-                <>
-                  <Separator className="mx-3" />
-                  {renderMenuGroup(trainerMenuItems, "Trainer-Bereich", true)}
-                </>
-              )}
-
-              {/* Admin-Menüpunkte */}
-              {adminMenuItems.length > 0 && (
-                <>
-                  <Separator className="mx-3" />
-                  {renderMenuGroup(adminMenuItems, "Administration", true)}
-                </>
-              )}
-            </nav>
-          </ScrollArea>
-
-          {/* Benutzerbereich */}
-          <div className="border-t border-border/40 p-4">
-            {user ? (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    {user.profilbild_url ? (
-                      <img
-                        src={user.profilbild_url || "/placeholder.svg"}
-                        alt={`${user.vorname} ${user.nachname}`}
-                        className="h-8 w-8 rounded-full object-cover"
-                      />
-                    ) : (
-                      <UserCircle className="h-5 w-5 text-primary" />
-                    )}
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium truncate max-w-[140px]">
-                      {user.vorname} {user.nachname}
-                    </span>
-                    <span className="text-xs text-muted-foreground">{user.rolle}</span>
-                  </div>
-                </div>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={signOut} title="Abmelden">
-                  <LogOut className="h-4 w-4" />
-                </Button>
-              </div>
-            ) : (
-              <Button asChild variant="outline" className="w-full">
-                <Link href="/login">Anmelden</Link>
-              </Button>
-            )}
-          </div>
+        <div className="flex h-16 items-center justify-between px-4 border-b border-gray-800">
+          <Link href="/" className="flex items-center space-x-2">
+            <span className="text-xl font-bold text-blue-400">Resadiye Cup</span>
+          </Link>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleSidebar}
+            className="lg:hidden"
+            aria-label={isSidebarOpen ? "Sidebar schließen" : "Sidebar öffnen"}
+          >
+            <X className="h-5 w-5" />
+          </Button>
         </div>
+
+        <ScrollArea className="h-[calc(100vh-4rem)]">
+          <nav className="px-2 py-4">
+            {/* Öffentliche Navigation */}
+            <ul className="space-y-1">
+              {publicNavigationItems.map((item) => {
+                const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(`${item.href}/`))
+                return <NavItem key={item.href} item={item} isActive={isActive} onClick={handleItemClick} />
+              })}
+            </ul>
+
+            {/* Rollenspezifische Navigation */}
+            {roleSpecificItems.length > 0 && (
+              <NavSection
+                title={roleSectionTitle}
+                items={roleSpecificItems}
+                pathname={pathname}
+                onClick={handleItemClick}
+              />
+            )}
+
+            {/* Turnier-spezifische Navigation */}
+            {tournamentNavItems.length > 0 && (
+              <NavSection
+                title="Turnier Navigation"
+                items={tournamentNavItems}
+                pathname={pathname}
+                onClick={handleItemClick}
+              />
+            )}
+          </nav>
+        </ScrollArea>
       </aside>
+
+      {/* Mobile Toggle Button */}
+      <Button
+        variant="default"
+        size="icon"
+        onClick={toggleSidebar}
+        className="fixed bottom-4 right-4 z-30 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg lg:hidden"
+        aria-label={isSidebarOpen ? "Sidebar schließen" : "Sidebar öffnen"}
+      >
+        <Menu className="h-6 w-6" />
+      </Button>
     </>
   )
 }
