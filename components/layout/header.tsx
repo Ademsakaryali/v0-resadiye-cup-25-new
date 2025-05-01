@@ -64,7 +64,6 @@ export function Header() {
     <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b bg-gray-950 border-gray-800 px-4 shadow-sm">
       <div className="flex items-center">
         <Button
-          variant="ghost"
           size="icon"
           onClick={toggleSidebar}
           className="mr-2 lg:hidden text-gray-300 hover:text-white hover:bg-gray-800"
@@ -79,7 +78,6 @@ export function Header() {
         {user ? (
           <>
             <Button
-              variant="ghost"
               size="icon"
               aria-label="Benachrichtigungen"
               className="relative text-gray-300 hover:text-white hover:bg-gray-800"
@@ -90,10 +88,7 @@ export function Header() {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="flex items-center space-x-2 text-gray-300 hover:text-white hover:bg-gray-800"
-                >
+                <Button className="flex items-center space-x-2 text-gray-300 hover:text-white hover:bg-gray-800">
                   <Avatar className="h-8 w-8 border border-gray-700">
                     <AvatarImage src={user.profilbild_url || ""} alt={user.email || user.vorname || "Benutzer"} />
                     <AvatarFallback className="bg-blue-600 text-white">{userInitials}</AvatarFallback>
@@ -130,7 +125,7 @@ export function Header() {
             </DropdownMenu>
           </>
         ) : (
-          <Button asChild variant="default" size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
+          <Button asChild size="sm" className="bg-blue-600 hover:bg-blue-700 text-white">
             <Link href="/login">Anmelden</Link>
           </Button>
         )}

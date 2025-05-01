@@ -26,7 +26,7 @@ export function ErrorHandler({
 
   return (
     <div className="space-y-4">
-      <Alert variant="destructive" className="bg-red-900/20 border-red-800 text-red-300">
+      <Alert className="bg-red-900/20 border-red-800 text-red-300">
         <AlertCircle className="h-4 w-4 text-red-400" />
         <AlertTitle className="text-red-300">Fehler</AlertTitle>
         <AlertDescription className="text-red-200">{error}</AlertDescription>
@@ -34,18 +34,13 @@ export function ErrorHandler({
       <div className="flex gap-4">
         {resetError && (
           <Button
-            variant="outline"
             onClick={resetError}
             className="border-gray-700 bg-gray-800 text-gray-200 hover:bg-gray-700 hover:text-white"
           >
             Erneut versuchen
           </Button>
         )}
-        <Button
-          asChild
-          variant="outline"
-          className="border-gray-700 bg-gray-800 text-gray-200 hover:bg-gray-700 hover:text-white"
-        >
+        <Button asChild className="border-gray-700 bg-gray-800 text-gray-200 hover:bg-gray-700 hover:text-white">
           <Link href={backLink}>{backLabel}</Link>
         </Button>
       </div>

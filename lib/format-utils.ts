@@ -1,38 +1,76 @@
+import { format, isToday, isTomorrow, isYesterday } from "date-fns"
+import { de } from "date-fns/locale"
 import { Badge } from "@/components/ui/badge"
 import type { Match } from "@/lib/types"
 
 /**
- * Generiert Initialen aus Vor- und Nachname
- * @param firstName - Vorname
- * @param lastName - Nachname (optional)
- * @returns Initialen als String
+ * Formatiert ein Datum in ein lesbares Format
  */
-export function getInitials(firstName: string, lastName?: string) {
-  if (!firstName) return ""
-  if (!lastName) {
-    return firstName
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-  }
-  return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase()
+export function formatDate(dateString: string | Date | null | undefined, formatStr = "dd.MM.yyyy") {
+  if (!dateString) return "Unbekannt"
+  const date = typeof dateString === "string" ? new Date(dateString) : dateString
+  return format(date, formatStr, { locale: de })
 }
 
 /**
- * Generiert einen vollständigen Namen aus Vor- und Nachname
- * @param firstName - Vorname
- * @param lastName - Nachname
- * @returns Vollständiger Name
+ * Formatiert ein Datum mit Uhrzeit in ein lesbares Format
  */
-export function getFullName(firstName: string, lastName: string) {
-  return `${firstName} ${lastName}`
+export function formatDateTime(dateString: string | Date | null | undefined, formatStr = "dd.MM.yyyy HH:mm") {
+  if (!dateString) return "Unbekannt"
+  const date = typeof dateString === "string" ? new Date(dateString) : dateString
+  return format(date, formatStr, { locale: de })
+}
+
+/**
+ * Formatiert ein Datum relativ zum aktuellen Tag (Heute, Morgen, Gestern, etc.)
+ */
+export function formatRelativeDate(dateString: string | Date | null | undefined) {
+  if (!dateString) return "Unbekannt"
+  const date = typeof dateString === "string" ? new Date(dateString) : dateString
+
+  if (isToday(date)) return "Heute"
+  if (isTomorrow(date)) return "Morgen"
+  if (isYesterday(date)) return "Gestern"
+
+  return format(date, "dd.MM.yyyy", { locale: de })
+}
+
+/**
+ * Berechnet das Alter basierend auf dem Geburtsdatum
+ */
+export function calculateAge(geburtsdatum: string | Date | null | undefined) {
+  if (!geburtsdatum) return null
+  const heute = new Date()
+  const geburtstag = typeof geburtsdatum === "string" ? new Date(geburtsdatum) : geburtsdatum
+  let alter = heute.getFullYear() - geburtstag.getFullYear()
+  const m = heute.getMonth() - geburtstag.getMonth()
+  if (m < 0 || (m === 0 && heute.getDate() < geburtstag.getDate())) {
+    alter--
+  }
+  return alter
+}
+
+/**
+ * Formatiert einen Zeitraum zwischen zwei Daten
+ */
+export function formatTimeRange(startDate: string | Date, endDate: string | Date) {
+  return `${formatDate(startDate)} - ${formatDate(endDate)}`
+}
+
+/**
+ * Generiert Initialen aus Vor- und Nachname
+ */
+export function getInitials(firstName?: string, lastName?: string) {
+  if (!firstName && !lastName) return ""
+  return firstName
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
 }
 
 /**
  * Generiert ein Badge für eine Spielerposition
- * @param position - Die Position des Spielers
- * @returns Ein Badge-Element mit entsprechender Formatierung
  */
 export function getPositionBadge(position?: string) {
   if (!position)
@@ -62,8 +100,6 @@ export function getPositionBadge(position?: string) {
 
 /**
  * Generiert ein Badge für den Status eines Spiels
- * @param status - Der Status des Spiels
- * @returns Ein Badge-Element mit entsprechender Formatierung
  */
 export function getMatchStatusBadge(status: string) {
   switch (status) {
@@ -94,10 +130,6 @@ export function getMatchStatusBadge(status: string) {
 
 /**
  * Generiert ein Badge für den Status eines Turniers
- * @param startDate - Das Startdatum des Turniers
- * @param endDate - Das Enddatum des Turniers
- * @param isActive - Gibt an, ob das Turnier aktiv ist
- * @returns Ein Badge-Element mit entsprechender Formatierung
  */
 export function getTournamentStatusBadge(startDate: string, endDate: string, isActive: boolean) {
   if (!isActive)
@@ -122,37 +154,7 @@ export function getTournamentStatusBadge(startDate: string, endDate: string, isA
 }
 
 /**
- * Generiert ein Badge für den Status eines Blanketts
- * @param status - Der Status des Blanketts
- * @returns Ein Badge-Element mit entsprechender Formatierung
- */
-export function getBlankettStatusBadge(status: string) {
-  switch (status) {
-    case "entwurf":
-      return (
-        <Badge variant="outline" className="border-gray-600 text-gray-300">
-          Entwurf
-        </Badge>
-      )
-    case "eingereicht":
-      return <Badge className="bg-yellow-600 text-white">Eingereicht</Badge>
-    case "genehmigt":
-      return <Badge className="bg-green-600 text-white">Genehmigt</Badge>
-    case "abgelehnt":
-      return <Badge variant="destructive">Abgelehnt</Badge>
-    default:
-      return (
-        <Badge variant="outline" className="border-gray-600 text-gray-300">
-          Unbekannt
-        </Badge>
-      )
-  }
-}
-
-/**
  * Formatiert ein Spielergebnis
- * @param match - Das Spiel mit den Ergebnissen
- * @returns Formatiertes Spielergebnis als String
  */
 export function formatMatchResult(match: Match) {
   if (match.status === "geplant" || match.status === "abgesagt") {
@@ -162,25 +164,9 @@ export function formatMatchResult(match: Match) {
 }
 
 /**
- * Formatiert eine Telefonnummer für die Anzeige
- * @param phoneNumber - Die zu formatierende Telefonnummer
- * @returns Formatierte Telefonnummer
- */
-export function formatPhoneNumber(phoneNumber?: string) {
-  if (!phoneNumber) return "Keine Telefonnummer"
-
-  // Einfache Formatierung für deutsche Telefonnummern
-  // Kann je nach Anforderung angepasst werden
-  return phoneNumber.replace(/(\d{3})(\d{3})(\d{4})/, "$1 $2 $3")
-}
-
-/**
  * Kürzt einen Text auf eine bestimmte Länge
- * @param text - Der zu kürzende Text
- * @param maxLength - Die maximale Länge
- * @returns Gekürzter Text mit Ellipsis
  */
-export function truncateText(text: string, maxLength = 100) {
-  if (!text || text.length <= maxLength) return text
+export function truncateText(text: string | null | undefined, maxLength = 100) {
+  if (!text || text.length <= maxLength) return text || ""
   return `${text.substring(0, maxLength)}...`
 }

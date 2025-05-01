@@ -46,7 +46,6 @@ export function FilterBar({
 
           {onReset && (
             <Button
-              variant="outline"
               size="sm"
               onClick={onReset}
               className="border-gray-700 bg-gray-800 text-gray-200 hover:bg-gray-700 hover:text-white"

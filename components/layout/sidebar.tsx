@@ -316,7 +316,6 @@ export function Sidebar() {
             <span className="text-xl font-bold text-blue-400">Resadiye Cup</span>
           </Link>
           <Button
-            variant="ghost"
             size="icon"
             onClick={toggleSidebar}
             className="lg:hidden"
@@ -361,7 +360,6 @@ export function Sidebar() {
 
       {/* Mobile Toggle Button */}
       <Button
-        variant="default"
         size="icon"
         onClick={toggleSidebar}
         className="fixed bottom-4 right-4 z-30 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg lg:hidden"
