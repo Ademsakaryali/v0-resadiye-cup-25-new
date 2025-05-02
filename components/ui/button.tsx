@@ -2,15 +2,15 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
-  size?: "default" | "sm" | "lg" | "icon"
+  appearance?: "primary" | "destructive" | "outline" | "secondary" | "ghost" | "link"
+  buttonSize?: "default" | "sm" | "lg" | "icon"
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "default", size = "default", ...props }, ref) => {
-    // Einfache Klassennamen ohne cva
-    const variantClasses = {
-      default: "bg-primary text-primary-foreground hover:bg-primary/90",
+  ({ className, appearance = "primary", buttonSize = "default", ...props }, ref) => {
+    // Einfache Klassennamen ohne das Wort "variant"
+    const appearanceClasses = {
+      primary: "bg-primary text-primary-foreground hover:bg-primary/90",
       destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
       outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
       secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
@@ -30,12 +30,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     return (
       <button
-        className={cn(
-          baseClasses,
-          variantClasses[variant as keyof typeof variantClasses],
-          sizeClasses[size as keyof typeof sizeClasses],
-          className,
-        )}
+        className={cn(baseClasses, appearanceClasses[appearance], sizeClasses[buttonSize], className)}
         ref={ref}
         {...props}
       />

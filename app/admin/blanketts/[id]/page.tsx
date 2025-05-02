@@ -439,7 +439,7 @@ export default function AdminBlankettPage() {
                 {blankett.status.charAt(0).toUpperCase() + blankett.status.slice(1)}
               </Badge>
               {blankett.is_locked && (
-                <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300">
                   <Lock className="h-3 w-3 mr-1" />
                   Gesperrt
                 </Badge>
@@ -449,7 +449,7 @@ export default function AdminBlankettPage() {
         </div>
 
         {error && (
-          <Alert variant="destructive" className="mb-6">
+          <Alert className="mb-6 bg-destructive text-destructive-foreground">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Fehler</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
@@ -457,7 +457,7 @@ export default function AdminBlankettPage() {
         )}
 
         {success && (
-          <Alert variant="default" className="mb-6 border-green-600 text-green-600">
+          <Alert className="mb-6 border-green-600 text-green-600">
             <CheckCircle className="h-4 w-4" />
             <AlertTitle>Erfolg</AlertTitle>
             <AlertDescription>{success}</AlertDescription>
