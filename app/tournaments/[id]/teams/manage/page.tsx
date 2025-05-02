@@ -154,13 +154,13 @@ export default function ManageTournamentTeamsPage() {
   if (!tournament) {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Button variant="ghost" asChild className="mb-4">
+        <Button className="bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 mb-4" asChild>
           <Link href="/tournaments">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Zurück zur Turnierübersicht
           </Link>
         </Button>
-        <Alert variant="destructive">
+        <Alert className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>Turnier konnte nicht geladen werden.</AlertDescription>
         </Alert>
@@ -172,7 +172,7 @@ export default function ManageTournamentTeamsPage() {
     <RequireAuth allowedRoles={["Admin"]}>
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
-          <Button variant="ghost" asChild className="mb-4">
+          <Button className="bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 mb-4" asChild>
             <Link href={`/tournaments/${params.id}`}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Zurück zum Turnier
@@ -183,7 +183,7 @@ export default function ManageTournamentTeamsPage() {
         </div>
 
         {error && (
-          <Alert variant="destructive" className="mb-4">
+          <Alert className="mb-4 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
@@ -238,9 +238,7 @@ export default function ManageTournamentTeamsPage() {
                         </div>
                       </div>
                       <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive"
+                        className="bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 h-8 w-8 p-0 text-destructive"
                         onClick={() => handleTeamToggle(team.id)}
                       >
                         <X className="h-4 w-4" />
@@ -289,9 +287,7 @@ export default function ManageTournamentTeamsPage() {
                         </div>
                       </div>
                       <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
+                        className="border bg-background hover:bg-gray-100 dark:hover:bg-gray-800 h-8 w-8 p-0"
                         onClick={() => handleTeamToggle(team.id)}
                       >
                         <Check className="h-4 w-4" />
@@ -304,7 +300,7 @@ export default function ManageTournamentTeamsPage() {
         </Card>
 
         <div className="flex justify-end gap-4">
-          <Button variant="outline" asChild>
+          <Button className="border bg-background hover:bg-gray-100 dark:hover:bg-gray-800" asChild>
             <Link href={`/tournaments/${params.id}`}>Abbrechen</Link>
           </Button>
           <Button onClick={handleSave} disabled={saving}>

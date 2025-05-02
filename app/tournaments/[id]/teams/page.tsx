@@ -96,7 +96,7 @@ export default function TournamentTeamsPage() {
   if (error || !tournament) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Button variant="ghost" asChild className="mb-4 text-gray-300 hover:text-blue-400">
+        <Button asChild className="mb-4 text-gray-300 hover:text-blue-400">
           <Link href={`/tournaments/${params.id}`}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Zurück zum Turnier
@@ -112,7 +112,7 @@ export default function TournamentTeamsPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <Button variant="ghost" asChild className="mb-4 text-gray-300 hover:text-blue-400">
+      <Button asChild className="mb-4 text-gray-300 hover:text-blue-400">
         <Link href={`/tournaments/${tournament.id}`}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Zurück zum Turnier
@@ -172,7 +172,6 @@ export default function TournamentTeamsPage() {
                 </div>
                 <Button
                   asChild
-                  variant="secondary"
                   size="sm"
                   className="w-full bg-gray-800 hover:bg-gray-700 text-gray-200 hover:text-blue-400"
                 >

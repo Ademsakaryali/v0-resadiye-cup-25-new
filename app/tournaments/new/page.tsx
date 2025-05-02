@@ -115,7 +115,7 @@ export default function NewTournamentPage() {
     <RequireAuth allowedRoles={["Admin"]}>
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
-          <Button variant="ghost" asChild className="mb-4">
+          <Button  asChild className="mb-4">
             <Link href="/tournaments">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Zurück zur Turnierübersicht
@@ -131,7 +131,7 @@ export default function NewTournamentPage() {
           </CardHeader>
           <CardContent>
             {error && (
-              <Alert variant="destructive" className="mb-4">
+              <Alert className="mb-4">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
@@ -168,7 +168,6 @@ export default function NewTournamentPage() {
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
-                          variant="outline"
                           className={`w-full justify-start text-left font-normal ${
                             !formData.start_datum && "text-muted-foreground"
                           }`}
@@ -193,7 +192,6 @@ export default function NewTournamentPage() {
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
-                          variant="outline"
                           className={`w-full justify-start text-left font-normal ${
                             !formData.end_datum && "text-muted-foreground"
                           }`}

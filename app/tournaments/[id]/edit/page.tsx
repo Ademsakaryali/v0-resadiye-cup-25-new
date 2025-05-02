@@ -161,13 +161,13 @@ export default function EditTournamentPage() {
   if (error && !tournament) {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Button variant="ghost" asChild className="mb-4">
+        <Button className="bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 mb-4" asChild>
           <Link href="/tournaments">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Zurück zur Turnierübersicht
           </Link>
         </Button>
-        <Alert variant="destructive">
+        <Alert className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{error}</AlertDescription>
         </Alert>
@@ -179,7 +179,7 @@ export default function EditTournamentPage() {
     <RequireAuth allowedRoles={["Admin"]}>
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
-          <Button variant="ghost" asChild className="mb-4">
+          <Button className="bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 mb-4" asChild>
             <Link href={`/tournaments/${params.id}`}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Zurück zum Turnier
@@ -195,7 +195,7 @@ export default function EditTournamentPage() {
           </CardHeader>
           <CardContent>
             {error && (
-              <Alert variant="destructive" className="mb-4">
+              <Alert className="mb-4 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
@@ -232,10 +232,7 @@ export default function EditTournamentPage() {
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
-                          variant="outline"
-                          className={`w-full justify-start text-left font-normal ${
-                            !formData.start_datum && "text-muted-foreground"
-                          }`}
+                          className={`border bg-background hover:bg-gray-100 dark:hover:bg-gray-800 w-full justify-start text-left font-normal ${!formData.start_datum && "text-muted-foreground"}`}
                         >
                           <Calendar className="mr-2 h-4 w-4" />
                           {formData.start_datum ? formatDate(formData.start_datum) : "Datum auswählen"}
@@ -257,10 +254,7 @@ export default function EditTournamentPage() {
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button
-                          variant="outline"
-                          className={`w-full justify-start text-left font-normal ${
-                            !formData.end_datum && "text-muted-foreground"
-                          }`}
+                          className={`border bg-background hover:bg-gray-100 dark:hover:bg-gray-800 w-full justify-start text-left font-normal ${!formData.end_datum && "text-muted-foreground"}`}
                         >
                           <Calendar className="mr-2 h-4 w-4" />
                           {formData.end_datum ? formatDate(formData.end_datum) : "Datum auswählen"}

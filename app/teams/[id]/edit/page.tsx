@@ -415,7 +415,7 @@ export default function EditTeamPage({ params }: { params: { id: string } }) {
                           </div>
                           <Dialog open={showNewTrainerDialog} onOpenChange={setShowNewTrainerDialog}>
                             <DialogTrigger asChild>
-                              <Button variant="outline" className="shrink-0">
+                              <Button className="border bg-background hover:bg-gray-100 dark:hover:bg-gray-800 shrink-0">
                                 <Plus className="h-4 w-4 mr-2" />
                                 Neu
                               </Button>

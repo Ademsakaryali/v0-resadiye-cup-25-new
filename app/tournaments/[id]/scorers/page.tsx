@@ -107,7 +107,7 @@ export default function TournamentScorersPage({ params }: { params: { id: string
                       </div>
                     </div>
                   </div>
-                  <Badge variant="secondary" className="text-lg px-3 py-1">
+                  <Badge className="bg-secondary text-secondary-foreground text-lg px-3 py-1">
                     {player.goals} {player.goals === 1 ? "Tor" : "Tore"}
                   </Badge>
                 </div>

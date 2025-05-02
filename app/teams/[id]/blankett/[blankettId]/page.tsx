@@ -1020,6 +1020,8 @@ export default function BlankettDetailPage() {
                                           "/placeholder.svg" ||
                                           "/placeholder.svg" ||
                                           "/placeholder.svg" ||
+                                          "/placeholder.svg" ||
+                                          "/placeholder.svg" ||
                                           "/placeholder.svg"
                                         }
                                         alt={player.currentTeam.name}
@@ -1179,10 +1181,7 @@ export default function BlankettDetailPage() {
                             <div className="font-medium flex items-center gap-1">
                               {spieler.spieler?.vorname} {spieler.spieler?.nachname}
                               {spieler.ist_transferiert && (
-                                <Badge
-                                  variant="outline"
-                                  className="ml-1 text-xs bg-amber-100 dark:bg-amber-900 border-amber-300 dark:border-amber-700"
-                                >
+                                <Badge className="ml-1 text-xs bg-amber-100 dark:bg-amber-900 border-amber-300 dark:border-amber-700 border bg-transparent">
                                   Transferiert
                                 </Badge>
                               )}

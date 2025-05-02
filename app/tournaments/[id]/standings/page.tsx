@@ -194,7 +194,7 @@ export default function TournamentStandingsPage({ params }: { params: { id: stri
               {sortedTeams.slice(0, 3).map((team, index) => (
                 <div key={team.id} className="flex items-center justify-between p-2 border rounded-lg">
                   <div className="flex items-center gap-2">
-                    <Badge variant="default" className="h-6 w-6 rounded-full flex items-center justify-center p-0">
+                    <Badge className="h-6 w-6 rounded-full flex items-center justify-center p-0 bg-primary text-primary-foreground hover:bg-primary/80">
                       {index + 1}
                     </Badge>
                     <Avatar className="h-6 w-6">
@@ -222,7 +222,7 @@ export default function TournamentStandingsPage({ params }: { params: { id: stri
                 .map((team, index) => (
                   <div key={team.id} className="flex items-center justify-between p-2 border rounded-lg">
                     <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="h-6 w-6 rounded-full flex items-center justify-center p-0">
+                      <Badge className="h-6 w-6 rounded-full flex items-center justify-center p-0 bg-secondary text-secondary-foreground hover:bg-secondary/80">
                         {index + 1}
                       </Badge>
                       <Avatar className="h-6 w-6">
@@ -250,7 +250,7 @@ export default function TournamentStandingsPage({ params }: { params: { id: stri
                 .map((team, index) => (
                   <div key={team.id} className="flex items-center justify-between p-2 border rounded-lg">
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="h-6 w-6 rounded-full flex items-center justify-center p-0">
+                      <Badge className="h-6 w-6 rounded-full flex items-center justify-center p-0 border bg-transparent">
                         {index + 1}
                       </Badge>
                       <Avatar className="h-6 w-6">

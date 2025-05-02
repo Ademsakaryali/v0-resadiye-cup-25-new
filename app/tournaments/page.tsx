@@ -111,7 +111,6 @@ export default function TournamentsPage() {
               {tournament.ort && <p className="text-gray-400 text-sm">Ort: {tournament.ort}</p>}
               <div className="flex justify-end mt-4">
                 <Button
-                  variant="outline"
                   size="sm"
                   asChild
                   className="border-gray-700 bg-gray-800 text-gray-200 hover:bg-gray-700 hover:text-white"

@@ -171,7 +171,7 @@ export default function TournamentDetailsPage() {
   if (error || !tournament) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Button variant="ghost" asChild className="mb-4 text-gray-300 hover:text-blue-400">
+        <Button asChild className="mb-4 text-gray-300 hover:text-blue-400">
           <Link href="/tournaments">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Zurück zur Turnierübersicht
@@ -188,7 +188,7 @@ export default function TournamentDetailsPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <Button variant="ghost" asChild className="mb-4 text-gray-300 hover:text-blue-400">
+      <Button asChild className="mb-4 text-gray-300 hover:text-blue-400">
         <Link href="/tournaments">
           <ArrowLeft className="mr-2 h-4 w-4" />
           Zurück zur Turnierübersicht
@@ -303,7 +303,6 @@ export default function TournamentDetailsPage() {
               )}
               <Button
                 asChild
-                variant="outline"
                 className="w-full justify-between border-gray-700 text-gray-200 hover:bg-gray-800 hover:text-blue-400"
               >
                 <Link href={`/tournaments/${tournament.id}/schedule`}>
@@ -313,7 +312,6 @@ export default function TournamentDetailsPage() {
               </Button>
               <Button
                 asChild
-                variant="outline"
                 className="w-full justify-between border-gray-700 text-gray-200 hover:bg-gray-800 hover:text-blue-400"
               >
                 <Link href={`/tournaments/${tournament.id}/standings`}>
@@ -323,7 +321,6 @@ export default function TournamentDetailsPage() {
               </Button>
               <Button
                 asChild
-                variant="outline"
                 className="w-full justify-between border-gray-700 text-gray-200 hover:bg-gray-800 hover:text-blue-400"
               >
                 <Link href={`/tournaments/${tournament.id}/players`}>
@@ -333,7 +330,6 @@ export default function TournamentDetailsPage() {
               </Button>
               <Button
                 asChild
-                variant="outline"
                 className="w-full justify-between border-gray-700 text-gray-200 hover:bg-gray-800 hover:text-blue-400"
               >
                 <Link href={`/tournaments/${tournament.id}/scorers`}>
@@ -414,7 +410,6 @@ export default function TournamentDetailsPage() {
                   <CardContent>
                     <Button
                       asChild
-                      variant="secondary"
                       size="sm"
                       className="w-full bg-gray-800 hover:bg-gray-700 text-gray-200 hover:text-blue-400"
                     >
@@ -505,8 +500,6 @@ export default function TournamentDetailsPage() {
                         )}
                         <Button
                           asChild
-                          variant="outline"
-                          size="sm"
                           className="border-gray-700 text-gray-200 hover:bg-gray-800 hover:text-blue-400"
                         >
                           <Link href={`/matches/${match.id}`}>Details</Link>
