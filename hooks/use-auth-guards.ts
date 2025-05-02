@@ -1,8 +1,10 @@
 "use client"
 
-import { useAuth } from "@/context/auth-context"
-import { useRouter } from "next/navigation"
 import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { useAuth } from "@/context/auth-context"
+
+type Role = "Admin" | "Trainer" | "Spieler" | "Gast"
 
 /**
  * Hook zum Schutz von Routen, die Authentifizierung erfordern
@@ -16,14 +18,31 @@ export function useRequireAuth(redirectTo = "/login") {
     if (!loading && !user) {
       router.push(redirectTo)
     }
-  }, [user, loading, router, redirectTo])
+  }, [user, loading, redirectTo, router])
 
   return { user, loading }
 }
 
 /**
- * Hook zum Schutz von Routen, die Admin-Rechte erfordern
- * Leitet nicht-Admin-Benutzer zur Startseite weiter
+ * Hook zum Schutz von Routen, die bestimmte Benutzerrollen erfordern
+ * Leitet Benutzer mit unzureichenden Berechtigungen zur Startseite weiter
+ */
+export function useRequireRole(allowedRoles: Role[], redirectTo = "/") {
+  const { user, loading } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!loading && (!user || !allowedRoles.includes(user.rolle as Role))) {
+      router.push(redirectTo)
+    }
+  }, [user, loading, allowedRoles, redirectTo, router])
+
+  return { user, loading, hasRequiredRole: user ? allowedRoles.includes(user.rolle as Role) : false }
+}
+
+/**
+ * Hook zum Schutz von Routen, die nur für Administratoren zugänglich sein sollen
+ * Leitet nicht-Administratoren zur Startseite weiter
  */
 export function useRequireAdmin(redirectTo = "/") {
   const { user, loading } = useAuth()
@@ -33,24 +52,24 @@ export function useRequireAdmin(redirectTo = "/") {
     if (!loading && (!user || user.rolle !== "Admin")) {
       router.push(redirectTo)
     }
-  }, [user, loading, router, redirectTo])
+  }, [user, loading, redirectTo, router])
 
   return { user, loading, isAdmin: user?.rolle === "Admin" }
 }
 
 /**
- * Hook zum Schutz von Routen, die Trainer-Rechte erfordern
- * Leitet nicht-Trainer-Benutzer zur Startseite weiter
+ * Hook zum Schutz von Routen, die nur für nicht authentifizierte Benutzer zugänglich sein sollen
+ * Leitet bereits authentifizierte Benutzer zur Startseite weiter
  */
-export function useRequireTrainer(redirectTo = "/") {
+export function useRequireNoAuth(redirectTo = "/") {
   const { user, loading } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
-    if (!loading && (!user || user.rolle !== "Trainer")) {
+    if (!loading && user) {
       router.push(redirectTo)
     }
-  }, [user, loading, router, redirectTo])
+  }, [user, loading, redirectTo, router])
 
-  return { user, loading, isTrainer: user?.rolle === "Trainer" }
+  return { user, loading }
 }

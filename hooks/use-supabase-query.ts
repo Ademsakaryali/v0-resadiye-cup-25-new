@@ -1,132 +1,88 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
 import { getSupabaseClient } from "@/lib/supabase/client"
+import type { PostgrestError } from "@supabase/supabase-js"
+
+type QueryOptions<T> = {
+  table: string
+  columns?: string
+  filters?: Record<string, any>
+  orderBy?: { column: string; ascending?: boolean }
+  limit?: number
+  single?: boolean
+  dependencies?: any[]
+}
+
+type QueryResult<T> = {
+  data: T | null
+  error: PostgrestError | null
+  loading: boolean
+  refetch: () => Promise<void>
+}
 
 /**
- * Hook für generische Supabase-Abfragen
- * Vereinfacht die Datenabfrage und Fehlerbehandlung
+ * Hook für vereinfachte Supabase-Abfragen
+ * Ermöglicht deklarative Abfragen mit automatischem Neuladen bei Änderungen der Abhängigkeiten
  */
-export function useSupabaseQuery<T = any>(
-  tableName: string,
-  queryFn: (supabase: ReturnType<typeof getSupabaseClient>) => Promise<{ data: T | null; error: any }>,
-  dependencies: any[] = [],
-) {
+export function useSupabaseQuery<T>({
+  table,
+  columns = "*",
+  filters = {},
+  orderBy,
+  limit,
+  single = false,
+  dependencies = [],
+}: QueryOptions<T>): QueryResult<T> {
   const [data, setData] = useState<T | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<PostgrestError | null>(null)
+  const [loading, setLoading] = useState<boolean>(true)
   const supabase = getSupabaseClient()
 
-  const fetchData = useCallback(async () => {
+  const fetchData = async () => {
     try {
       setLoading(true)
-      const { data, error } = await queryFn(supabase)
+      let query = supabase.from(table).select(columns)
 
-      if (error) throw error
-      setData(data)
-      setError(null)
-    } catch (err: any) {
-      console.error(`Fehler beim Laden von ${tableName}:`, err)
-      setError(err.message || `Ein Fehler ist aufgetreten beim Laden von ${tableName}.`)
+      // Wende Filter an
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          query = query.eq(key, value)
+        }
+      })
+
+      // Wende Sortierung an
+      if (orderBy) {
+        query = query.order(orderBy.column, { ascending: orderBy.ascending ?? true })
+      }
+
+      // Wende Limit an
+      if (limit) {
+        query = query.limit(limit)
+      }
+
+      // Hole einzelnen Datensatz oder Liste
+      const { data: result, error: queryError } = single ? await query.single() : await query
+
+      if (queryError) {
+        setError(queryError)
+        setData(null)
+      } else {
+        setData(result as T)
+        setError(null)
+      }
+    } catch (err) {
+      console.error("Fehler bei Supabase-Abfrage:", err)
+      setError(err as PostgrestError)
     } finally {
       setLoading(false)
     }
-  }, [supabase, tableName, queryFn])
+  }
 
   useEffect(() => {
     fetchData()
-  }, [...dependencies, fetchData])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [...dependencies])
 
   return { data, error, loading, refetch: fetchData }
-}
-
-/**
- * Hook zum Laden eines Teams anhand seiner ID
- */
-export function useTeam(teamId: string) {
-  return useSupabaseQuery(
-    "teams",
-    (supabase) => supabase.from("teams").select("*, trainer:trainer_id(*)").eq("id", teamId).single(),
-    [teamId],
-  )
-}
-
-/**
- * Hook zum Laden eines Turniers anhand seiner ID
- */
-export function useTournament(tournamentId: string) {
-  return useSupabaseQuery(
-    "tournaments",
-    (supabase) => supabase.from("tournaments").select("*").eq("id", tournamentId).single(),
-    [tournamentId],
-  )
-}
-
-/**
- * Hook zum Laden eines Spielers anhand seiner ID
- */
-export function usePlayer(playerId: string) {
-  return useSupabaseQuery(
-    "users",
-    (supabase) => supabase.from("users").select("*").eq("id", playerId).eq("rolle", "Spieler").single(),
-    [playerId],
-  )
-}
-
-/**
- * Hook zum Laden aller Teams
- */
-export function useTeams(options: { activeOnly?: boolean } = {}) {
-  const { activeOnly = true } = options
-
-  return useSupabaseQuery(
-    "teams",
-    (supabase) => {
-      let query = supabase.from("teams").select("*, trainer:trainer_id(*)").order("name")
-
-      if (activeOnly) {
-        query = query.eq("ist_aktiv", true)
-      }
-
-      return query
-    },
-    [activeOnly],
-  )
-}
-
-/**
- * Hook zum Laden aller Turniere
- */
-export function useTournaments(options: { activeOnly?: boolean } = {}) {
-  const { activeOnly = true } = options
-
-  return useSupabaseQuery(
-    "tournaments",
-    (supabase) => {
-      let query = supabase.from("tournaments").select("*").order("start_datum", { ascending: false })
-
-      if (activeOnly) {
-        query = query.eq("ist_aktiv", true)
-      }
-
-      return query
-    },
-    [activeOnly],
-  )
-}
-
-/**
- * Hook zum Laden der Spiele eines Turniers
- */
-export function useTournamentMatches(tournamentId: string) {
-  return useSupabaseQuery(
-    "matches",
-    (supabase) =>
-      supabase
-        .from("matches")
-        .select("*, team_heim:team_heim_id(*), team_gast:team_gast_id(*)")
-        .eq("tournament_id", tournamentId)
-        .order("datum"),
-    [tournamentId],
-  )
 }
