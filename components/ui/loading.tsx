@@ -87,7 +87,7 @@ export function LoadingSpinner({ className = "", size = "sm" }: { className?: st
           "animate-spin rounded-full border-2 border-b-2 border-transparent border-b-primary-600",
           sizeClasses[size],
         )}
-      ></div>
+      />
     </div>
   )
 }
@@ -98,7 +98,7 @@ export function LoadingSpinner({ className = "", size = "sm" }: { className?: st
 export function InlineLoading({ className = "" }: { className?: string }) {
   return (
     <div className={cn("inline-flex items-center", className)}>
-      <div className="animate-spin rounded-full h-3 w-3 border-2 border-transparent border-b-current"></div>
+      <div className="animate-spin rounded-full h-3 w-3 border-2 border-transparent border-b-current" />
     </div>
   )
 }
