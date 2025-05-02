@@ -1,11 +1,72 @@
 "use client"
 
+import { useState } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { PendingBlanketts } from "@/components/admin/pending-blanketts"
-import { RecentActivity } from "@/components/admin/recent-activity"
-import { Notifications } from "@/components/admin/notifications"
-import { MobileNav } from "@/components/admin/mobile-nav"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+
+// Inline-Komponenten statt Importe
+function SimpleMobileNav() {
+  const [open, setOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState("overview")
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button className="border border-input bg-background hover:bg-accent hover:text-accent-foreground">Menü</Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Dashboard Navigation</DialogTitle>
+          <DialogDescription>Wählen Sie einen Bereich aus, den Sie anzeigen möchten.</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid grid-cols-4 w-full">
+              <TabsTrigger value="overview">Übersicht</TabsTrigger>
+              <TabsTrigger value="blanketts">Blanketts</TabsTrigger>
+              <TabsTrigger value="activity">Aktivität</TabsTrigger>
+              <TabsTrigger value="notifications">Benachrichtigungen</TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <Button onClick={() => setOpen(false)}>Auswählen</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function SimplePendingBlanketts() {
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">Keine ausstehenden Blanketts</p>
+    </div>
+  )
+}
+
+function SimpleRecentActivity() {
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">Keine aktuellen Aktivitäten</p>
+    </div>
+  )
+}
+
+function SimpleNotifications() {
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">Keine neuen Benachrichtigungen</p>
+    </div>
+  )
+}
 
 export default function AdminDashboard() {
   return (
@@ -23,7 +84,7 @@ export default function AdminDashboard() {
           </TabsList>
         </div>
         <div className="md:hidden">
-          <MobileNav />
+          <SimpleMobileNav />
         </div>
         <TabsContent value="overview" className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -61,7 +122,7 @@ export default function AdminDashboard() {
                 <CardTitle>Offene Blanketts</CardTitle>
               </CardHeader>
               <CardContent className="pl-2">
-                <PendingBlanketts />
+                <SimplePendingBlanketts />
               </CardContent>
             </Card>
             <Card className="col-span-3">
@@ -70,7 +131,7 @@ export default function AdminDashboard() {
                 <CardDescription>Es gab 24 Aktivitäten in den letzten 24 Stunden</CardDescription>
               </CardHeader>
               <CardContent>
-                <RecentActivity />
+                <SimpleRecentActivity />
               </CardContent>
             </Card>
           </div>
@@ -81,7 +142,7 @@ export default function AdminDashboard() {
               <CardTitle>Offene Blanketts</CardTitle>
             </CardHeader>
             <CardContent className="pl-2">
-              <PendingBlanketts />
+              <SimplePendingBlanketts />
             </CardContent>
           </Card>
         </TabsContent>
@@ -92,7 +153,7 @@ export default function AdminDashboard() {
               <CardDescription>Es gab 24 Aktivitäten in den letzten 24 Stunden</CardDescription>
             </CardHeader>
             <CardContent>
-              <RecentActivity />
+              <SimpleRecentActivity />
             </CardContent>
           </Card>
         </TabsContent>
@@ -102,7 +163,7 @@ export default function AdminDashboard() {
               <CardTitle>Benachrichtigungen</CardTitle>
             </CardHeader>
             <CardContent>
-              <Notifications />
+              <SimpleNotifications />
             </CardContent>
           </Card>
         </TabsContent>
