@@ -1,41 +1,40 @@
 "use client"
 
+import type React from "react"
 import type { ReactNode } from "react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { effects } from "@/lib/design-tokens"
 
 // Definiere die Props für die DataCard-Komponente
-interface DataCardProps {
+export interface DataCardProps extends React.HTMLAttributes<HTMLDivElement> {
   title: string
   description?: ReactNode
   icon?: ReactNode
   actions?: ReactNode
   children?: ReactNode
   footer?: ReactNode
-  className?: string
-  onClick?: () => void
   neonBorder?: boolean
   neonTitle?: boolean
+  onClick?: () => void
 }
 
 /**
- * Wiederverwendbare Karten-Komponente für Datenansichten
+ * Wiederverwendbare Karten-Komponente für Datenansichten mit Accessibility und Performance-Optimierungen
  */
-export function DataCard(props: DataCardProps) {
-  const {
-    title,
-    description,
-    icon,
-    actions,
-    children,
-    footer,
-    className,
-    onClick,
-    neonBorder = false,
-    neonTitle = false,
-  } = props
-
+export function DataCard({
+  title,
+  description,
+  icon,
+  actions,
+  children,
+  footer,
+  className,
+  onClick,
+  neonBorder = false,
+  neonTitle = false,
+  ...rest
+}: DataCardProps) {
   // Erstelle die Klassen für die Card
   const cardClasses = cn(
     "border border-gray-800 bg-gray-900/60",
@@ -47,8 +46,24 @@ export function DataCard(props: DataCardProps) {
   // Erstelle die Klassen für den Titel
   const titleClasses = cn("text-white", neonTitle && effects.neon.text)
 
+  // Tastatur-Handling für Accessibility
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!onClick) return
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault()
+      onClick()
+    }
+  }
+
   return (
-    <Card className={cardClasses} onClick={onClick}>
+    <Card
+      className={cardClasses}
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={handleKeyDown}
+      {...rest}
+    >
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
