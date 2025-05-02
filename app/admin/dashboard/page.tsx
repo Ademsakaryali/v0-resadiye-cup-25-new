@@ -2,6 +2,9 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { PendingBlanketts } from "@/components/admin/pending-blanketts"
+import { RecentActivity } from "@/components/admin/recent-activity"
+import { Notifications } from "@/components/admin/notifications"
 import { MobileNav } from "@/components/admin/mobile-nav"
 
 export default function AdminDashboard() {
@@ -58,9 +61,7 @@ export default function AdminDashboard() {
                 <CardTitle>Offene Blanketts</CardTitle>
               </CardHeader>
               <CardContent className="pl-2">
-                <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground">Keine ausstehenden Blanketts</p>
-                </div>
+                <PendingBlanketts />
               </CardContent>
             </Card>
             <Card className="col-span-3">
@@ -69,9 +70,7 @@ export default function AdminDashboard() {
                 <CardDescription>Es gab 24 Aktivitäten in den letzten 24 Stunden</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <p className="text-sm text-muted-foreground">Keine aktuellen Aktivitäten</p>
-                </div>
+                <RecentActivity />
               </CardContent>
             </Card>
           </div>
@@ -82,9 +81,7 @@ export default function AdminDashboard() {
               <CardTitle>Offene Blanketts</CardTitle>
             </CardHeader>
             <CardContent className="pl-2">
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">Keine ausstehenden Blanketts</p>
-              </div>
+              <PendingBlanketts />
             </CardContent>
           </Card>
         </TabsContent>
@@ -95,9 +92,7 @@ export default function AdminDashboard() {
               <CardDescription>Es gab 24 Aktivitäten in den letzten 24 Stunden</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">Keine aktuellen Aktivitäten</p>
-              </div>
+              <RecentActivity />
             </CardContent>
           </Card>
         </TabsContent>
@@ -107,9 +102,7 @@ export default function AdminDashboard() {
               <CardTitle>Benachrichtigungen</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">Keine neuen Benachrichtigungen</p>
-              </div>
+              <Notifications />
             </CardContent>
           </Card>
         </TabsContent>
