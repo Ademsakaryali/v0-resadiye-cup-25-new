@@ -144,11 +144,9 @@ export function ProfileImageUpload({ initialImageUrl, onImageUpload, className =
         />
         <Button
           type="button"
-          variant="outline"
-          size="sm"
+          className="border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3 mb-2"
           onClick={() => fileInputRef.current?.click()}
           disabled={isUploading}
-          className="mb-2"
         >
           <Upload className="mr-2 h-4 w-4" />
           {imageUrl ? "Bild ändern" : "Bild hochladen"}

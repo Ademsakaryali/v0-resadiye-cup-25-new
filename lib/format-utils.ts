@@ -73,12 +73,7 @@ export function getInitials(firstName?: string, lastName?: string) {
  * Generiert ein Badge für eine Spielerposition
  */
 export function getPositionBadge(position?: string) {
-  if (!position)
-    return (
-      <Badge variant="outline" className="border-gray-700 text-gray-300">
-        Keine Position
-      </Badge>
-    )
+  if (!position) return <Badge className="border border-gray-700 bg-background text-gray-300">Keine Position</Badge>
 
   switch (position) {
     case "Torwart":
@@ -90,11 +85,7 @@ export function getPositionBadge(position?: string) {
     case "Sturm":
       return <Badge className="bg-red-500/20 text-red-400 hover:bg-red-500/30">{position}</Badge>
     default:
-      return (
-        <Badge variant="outline" className="border-gray-700 text-gray-300">
-          {position}
-        </Badge>
-      )
+      return <Badge className="border border-gray-700 bg-background text-gray-300">{position}</Badge>
   }
 }
 
@@ -104,27 +95,15 @@ export function getPositionBadge(position?: string) {
 export function getMatchStatusBadge(status: string) {
   switch (status) {
     case "geplant":
-      return (
-        <Badge variant="outline" className="border-gray-600 text-gray-300">
-          Geplant
-        </Badge>
-      )
+      return <Badge className="border border-gray-600 bg-background text-gray-300">Geplant</Badge>
     case "live":
       return <Badge className="bg-red-600 text-white">Live</Badge>
     case "beendet":
-      return (
-        <Badge variant="secondary" className="bg-gray-700 text-gray-300">
-          Beendet
-        </Badge>
-      )
+      return <Badge className="bg-gray-700 text-gray-300">Beendet</Badge>
     case "abgesagt":
-      return <Badge variant="destructive">Abgesagt</Badge>
+      return <Badge className="bg-destructive text-destructive-foreground">Abgesagt</Badge>
     default:
-      return (
-        <Badge variant="outline" className="border-gray-600 text-gray-300">
-          Unbekannt
-        </Badge>
-      )
+      return <Badge className="border border-gray-600 bg-background text-gray-300">Unbekannt</Badge>
   }
 }
 
@@ -132,24 +111,14 @@ export function getMatchStatusBadge(status: string) {
  * Generiert ein Badge für den Status eines Turniers
  */
 export function getTournamentStatusBadge(startDate: string, endDate: string, isActive: boolean) {
-  if (!isActive)
-    return (
-      <Badge variant="secondary" className="bg-gray-700 text-gray-300">
-        Inaktiv
-      </Badge>
-    )
+  if (!isActive) return <Badge className="bg-gray-700 text-gray-300">Inaktiv</Badge>
 
   const now = new Date()
   const start = new Date(startDate)
   const end = new Date(endDate)
 
   if (now < start) return <Badge className="bg-blue-600 text-white">Bevorstehend</Badge>
-  if (now > end)
-    return (
-      <Badge variant="outline" className="border-gray-600 text-gray-300">
-        Abgeschlossen
-      </Badge>
-    )
+  if (now > end) return <Badge className="border border-gray-600 bg-background text-gray-300">Abgeschlossen</Badge>
   return <Badge className="bg-green-600 text-white">Aktiv</Badge>
 }
 

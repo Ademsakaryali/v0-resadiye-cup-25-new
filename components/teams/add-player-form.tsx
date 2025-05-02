@@ -277,7 +277,7 @@ export function AddPlayerToTeamForm({ teamId, existingPlayerIds = [], onSuccess,
   return (
     <div className="py-4">
       {error && (
-        <Alert variant="destructive" className="mb-4">
+        <Alert className="bg-destructive/15 text-destructive border-destructive/20 mb-4">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{error}</AlertDescription>
         </Alert>

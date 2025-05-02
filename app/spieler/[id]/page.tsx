@@ -119,7 +119,7 @@ export default function SpielerDetailPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
       <div className="mb-4">
-        <Button variant="ghost" asChild className="mb-2">
+        <Button asChild className="mb-2">
           <Link href="/spieler">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Zurück zur Spielerübersicht

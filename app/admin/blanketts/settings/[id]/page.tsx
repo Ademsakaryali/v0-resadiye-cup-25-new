@@ -234,7 +234,7 @@ export default function AdminBlankettSettingsPage() {
     <RequireAuth allowedRoles={["Admin"]}>
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="mb-4">
-          <Button variant="ghost" asChild className="mb-2">
+          <Button asChild className="mb-2">
             <Link href="/admin/blanketts">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Zurück zur Blankett-Übersicht
@@ -243,7 +243,7 @@ export default function AdminBlankettSettingsPage() {
         </div>
 
         {error && (
-          <Alert variant="destructive" className="mb-6">
+          <Alert className="mb-6 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Fehler</AlertTitle>
             <AlertDescription>{error}</AlertDescription>

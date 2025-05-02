@@ -63,9 +63,7 @@ export default function ProfilePage() {
                 <AvatarFallback className="text-2xl">{getInitials()}</AvatarFallback>
               </Avatar>
               <Badge className={getRoleBadgeColor(user?.rolle || "")}>{user?.rolle}</Badge>
-              <Button variant="outline" size="sm" className="mt-2">
-                Profilbild ändern
-              </Button>
+              <Button className="mt-2 bg-gray-200 hover:bg-gray-300 text-gray-800">Profilbild ändern</Button>
             </div>
 
             <div className="flex-1 space-y-4">
@@ -98,8 +96,8 @@ export default function ProfilePage() {
               </div>
 
               <div className="pt-4 flex flex-wrap gap-2">
-                <Button variant="outline">Passwort ändern</Button>
-                <Button variant="outline">Profil bearbeiten</Button>
+                <Button className="bg-gray-200 hover:bg-gray-300 text-gray-800">Passwort ändern</Button>
+                <Button className="bg-gray-200 hover:bg-gray-300 text-gray-800">Profil bearbeiten</Button>
               </div>
             </div>
           </div>

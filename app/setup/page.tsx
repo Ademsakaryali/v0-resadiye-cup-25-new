@@ -338,13 +338,13 @@ export default function SetupPage() {
         </CardHeader>
         <CardContent>
           {error && (
-            <Alert variant="destructive" className="mb-4">
+            <Alert className="mb-4 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
           {success && (
-            <Alert variant="default" className="mb-4 bg-green-50 border-green-200">
+            <Alert className="mb-4 bg-green-50 border-green-200">
               <CheckCircle className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-600">{success}</AlertDescription>
             </Alert>

@@ -41,11 +41,7 @@ export function PageLayout({
   return (
     <div className={cn(layout.container.default, "py-6", className)}>
       {backLink && (
-        <Button
-          variant="ghost"
-          asChild
-          className="mb-4 text-gray-300 hover:text-primary-400 hover:bg-gray-800 transition-colors"
-        >
+        <Button className="hover:bg-gray-800 hover:text-primary-400 mb-4 text-gray-300 transition-colors" asChild>
           <Link href={backLink}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             {backLabel}

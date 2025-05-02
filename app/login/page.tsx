@@ -54,7 +54,7 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           {error && (
-            <Alert variant="destructive" className="mb-4">
+            <Alert className="mb-4 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
             </Alert>
@@ -85,9 +85,7 @@ export default function LoginPage() {
                 />
                 <Button
                   type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-2 top-1/2 -translate-y-1/2"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-transparent hover:bg-transparent text-gray-500"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}

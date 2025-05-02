@@ -131,7 +131,7 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
     <RequireAuth allowedRoles={["Admin"]}>
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
-          <Button variant="ghost" asChild className="mb-4">
+          <Button className="hover:bg-accent hover:text-accent-foreground mb-4" asChild>
             <Link href="/users">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Zurück zur Benutzerliste
@@ -150,7 +150,7 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
           </CardHeader>
           <CardContent>
             {error && (
-              <Alert variant="destructive" className="mb-4">
+              <Alert className="bg-destructive/15 text-destructive border-destructive/20 mb-4">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
@@ -275,7 +275,10 @@ export default function EditUserPage({ params }: { params: { id: string } }) {
                 </TabsContent>
               </Tabs>
               <CardFooter className="px-0 pt-6">
-                <Button variant="outline" asChild className="mr-auto">
+                <Button
+                  className="border border-input bg-background hover:bg-accent hover:text-accent-foreground mr-auto"
+                  asChild
+                >
                   <Link href="/users">Abbrechen</Link>
                 </Button>
                 <Button type="submit" disabled={isSaving}>

@@ -132,7 +132,7 @@ export default function UsersPage() {
                 case "Spieler":
                   return <Badge className="bg-green-500/20 text-green-400">Spieler</Badge>
                 default:
-                  return <Badge variant="outline">Unbekannt</Badge>
+                  return <Badge className="border border-gray-700 bg-background text-gray-300">Unbekannt</Badge>
               }
             },
           },
@@ -143,9 +143,7 @@ export default function UsersPage() {
               user.ist_aktiv ? (
                 <Badge className="bg-green-600 text-white">Aktiv</Badge>
               ) : (
-                <Badge variant="secondary" className="bg-gray-700 text-gray-300">
-                  Inaktiv
-                </Badge>
+                <Badge className="bg-gray-700 text-gray-300">Inaktiv</Badge>
               ),
           },
           {
@@ -157,7 +155,7 @@ export default function UsersPage() {
             key: "actions",
             header: "",
             cell: (user) => (
-              <Button variant="ghost" size="sm" asChild className="text-gray-300 hover:text-blue-400">
+              <Button className="hover:bg-accent hover:text-blue-400 text-gray-300 h-9 rounded-md px-3" asChild>
                 <Link href={routes.users.detail(user.id)}>
                   <UserCog className="h-4 w-4 mr-1" />
                   Details

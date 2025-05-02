@@ -350,7 +350,7 @@ export default function NewTeamPage() {
     <RequireAuth allowedRoles={["Admin"]}>
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         <div className="mb-4 sm:mb-6">
-          <Button variant="ghost" asChild className="mb-2 sm:mb-4 -ml-2">
+          <Button className="bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 mb-2 sm:mb-4 -ml-2" asChild>
             <Link href="/teams">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Zurück zur Teamübersicht
@@ -366,7 +366,7 @@ export default function NewTeamPage() {
           </CardHeader>
           <CardContent className="px-4 sm:px-6">
             {error && (
-              <Alert variant="destructive" className="mb-4">
+              <Alert className="mb-4 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
@@ -481,7 +481,7 @@ export default function NewTeamPage() {
                     </div>
                     <Dialog open={showNewTrainerDialog} onOpenChange={setShowNewTrainerDialog}>
                       <DialogTrigger asChild>
-                        <Button variant="outline" className="shrink-0">
+                        <Button className="border bg-background hover:bg-gray-100 dark:hover:bg-gray-800 shrink-0">
                           <Plus className="h-4 w-4 mr-2" />
                           <span className="hidden sm:inline">Neu</span>
                         </Button>
@@ -494,7 +494,7 @@ export default function NewTeamPage() {
                           </DialogDescription>
                         </DialogHeader>
                         {newTrainerError && (
-                          <Alert variant="destructive" className="mt-4">
+                          <Alert className="mt-4 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300">
                             <AlertCircle className="h-4 w-4" />
                             <AlertDescription>{newTrainerError}</AlertDescription>
                           </Alert>
@@ -566,7 +566,11 @@ export default function NewTeamPage() {
                           </div>
                         </div>
                         <DialogFooter>
-                          <Button type="button" variant="outline" onClick={() => setShowNewTrainerDialog(false)}>
+                          <Button
+                            type="button"
+                            className="border bg-background hover:bg-gray-100 dark:hover:bg-gray-800"
+                            onClick={() => setShowNewTrainerDialog(false)}
+                          >
                             Abbrechen
                           </Button>
                           <Button type="button" onClick={handleCreateTrainer} disabled={isCreatingTrainer}>
@@ -594,11 +598,16 @@ export default function NewTeamPage() {
                       </div>
                     ) : trainerLoadError ? (
                       <div className="p-4 text-center">
-                        <Alert variant="destructive" className="mb-2">
+                        <Alert className="mb-2 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300">
                           <AlertCircle className="h-4 w-4" />
                           <AlertDescription>{trainerLoadError}</AlertDescription>
                         </Alert>
-                        <Button variant="outline" size="sm" onClick={fetchTrainers} className="mt-2">
+                        <Button
+                          className="border bg-background hover:bg-gray-100 dark:hover:bg-gray-800"
+                          size="sm"
+                          onClick={fetchTrainers}
+                          className="mt-2"
+                        >
                           Erneut versuchen
                         </Button>
                       </div>

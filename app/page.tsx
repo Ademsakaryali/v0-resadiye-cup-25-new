@@ -64,9 +64,7 @@ export default function HomePage() {
             </h2>
             <Button
               asChild
-              variant="outline"
-              size="sm"
-              className="border-blue-500 text-blue-400 hover:bg-gray-800 hover:text-blue-300"
+              className="border border-blue-500 bg-background text-blue-400 hover:bg-gray-800 hover:text-blue-300 h-9 rounded-md px-3"
             >
               <Link href="/tournaments">Alle anzeigen</Link>
             </Button>

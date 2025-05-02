@@ -9,7 +9,7 @@ export function Notifications() {
         <AlertTitle>Neues Team registriert</AlertTitle>
         <AlertDescription>FC Bayern München hat sich für das Turnier angemeldet.</AlertDescription>
       </Alert>
-      <Alert variant="destructive">
+      <Alert className="bg-destructive/15 text-destructive border-destructive/20">
         <Bell className="h-4 w-4" />
         <AlertTitle>Blankett abgelehnt</AlertTitle>
         <AlertDescription>Ein Blankett wurde von einem Administrator abgelehnt.</AlertDescription>

@@ -15,10 +15,16 @@ export function PendingBlanketts() {
           <p className="text-sm text-muted-foreground">Blankett für Turnier: Resadiye Cup 2023</p>
         </div>
         <div className="ml-auto flex space-x-2">
-          <Button size="sm" variant="outline" className="h-8 w-8 p-0">
+          <Button
+            size="sm"
+            className="border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 w-8 p-0"
+          >
             <Check className="h-4 w-4" />
           </Button>
-          <Button size="sm" variant="outline" className="h-8 w-8 p-0">
+          <Button
+            size="sm"
+            className="border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 w-8 p-0"
+          >
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -33,10 +39,16 @@ export function PendingBlanketts() {
           <p className="text-sm text-muted-foreground">Blankett für Turnier: Resadiye Cup 2023</p>
         </div>
         <div className="ml-auto flex space-x-2">
-          <Button size="sm" variant="outline" className="h-8 w-8 p-0">
+          <Button
+            size="sm"
+            className="border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 w-8 p-0"
+          >
             <Check className="h-4 w-4" />
           </Button>
-          <Button size="sm" variant="outline" className="h-8 w-8 p-0">
+          <Button
+            size="sm"
+            className="border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 w-8 p-0"
+          >
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -51,10 +63,16 @@ export function PendingBlanketts() {
           <p className="text-sm text-muted-foreground">Blankett für Turnier: Resadiye Cup 2023</p>
         </div>
         <div className="ml-auto flex space-x-2">
-          <Button size="sm" variant="outline" className="h-8 w-8 p-0">
+          <Button
+            size="sm"
+            className="border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 w-8 p-0"
+          >
             <Check className="h-4 w-4" />
           </Button>
-          <Button size="sm" variant="outline" className="h-8 w-8 p-0">
+          <Button
+            size="sm"
+            className="border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 w-8 p-0"
+          >
             <X className="h-4 w-4" />
           </Button>
         </div>

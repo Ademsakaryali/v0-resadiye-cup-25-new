@@ -348,7 +348,7 @@ export default function TeamsPage() {
             </div>
             <div className="flex border rounded-md overflow-hidden">
               <Button
-                variant={viewMode === "grid" ? "default" : "ghost"}
+                className={viewMode === "grid" ? "" : "bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800"}
                 size="icon"
                 onClick={() => setViewMode("grid")}
                 className="rounded-none border-0"
@@ -356,7 +356,7 @@ export default function TeamsPage() {
                 <Grid className="h-4 w-4" />
               </Button>
               <Button
-                variant={viewMode === "list" ? "default" : "ghost"}
+                className={viewMode === "list" ? "" : "bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800"}
                 size="icon"
                 onClick={() => setViewMode("list")}
                 className="rounded-none border-0"
@@ -399,9 +399,8 @@ export default function TeamsPage() {
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
-                            variant="ghost"
+                            className="bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 h-7 w-7 rounded-full bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-800"
                             size="icon"
-                            className="h-7 w-7 rounded-full bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-800"
                           >
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
@@ -442,11 +441,14 @@ export default function TeamsPage() {
                       )}
                     </div>
                     <div className="ml-2 flex flex-col items-end">
-                      <Badge variant="outline" className="text-xs">
-                        {teamSizes[team.id] || 0} Spieler
-                      </Badge>
+                      <Badge className="text-xs border">{teamSizes[team.id] || 0} Spieler</Badge>
                       {user?.rolle === "Admin" && (
-                        <Badge variant={team.ist_aktiv ? "outline" : "secondary"} className="mt-1 text-xs">
+                        <Badge
+                          className={
+                            team.ist_aktiv ? "border" : "bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
+                          }
+                          className="mt-1 text-xs"
+                        >
                           {team.ist_aktiv ? "Aktiv" : "Inaktiv"}
                         </Badge>
                       )}
@@ -454,7 +456,11 @@ export default function TeamsPage() {
                   </div>
 
                   <CardFooter className="p-2">
-                    <Button asChild variant="ghost" size="sm" className="w-full">
+                    <Button
+                      asChild
+                      className="bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 w-full"
+                      size="sm"
+                    >
                       <Link href={`/teams/${team.id}`}>Details</Link>
                     </Button>
                   </CardFooter>
@@ -502,35 +508,49 @@ export default function TeamsPage() {
                         )}
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
-                        <Badge variant="outline" className="text-xs">
-                          {teamSizes[team.id] || 0} Spieler
-                        </Badge>
+                        <Badge className="text-xs border">{teamSizes[team.id] || 0} Spieler</Badge>
                       </TableCell>
                       {user?.rolle === "Admin" && (
                         <TableCell className="hidden md:table-cell">
-                          <Badge variant={team.ist_aktiv ? "outline" : "secondary"} className="text-xs">
+                          <Badge
+                            className={
+                              team.ist_aktiv
+                                ? "border"
+                                : "bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-300"
+                            }
+                            className="text-xs"
+                          >
                             {team.ist_aktiv ? "Aktiv" : "Inaktiv"}
                           </Badge>
                         </TableCell>
                       )}
                       <TableCell>
                         <div className="flex items-center space-x-1">
-                          <Button asChild variant="ghost" size="icon" className="h-8 w-8">
+                          <Button
+                            asChild
+                            className="bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800"
+                            size="icon"
+                            className="h-8 w-8"
+                          >
                             <Link href={`/teams/${team.id}`}>
                               <Search className="h-4 w-4" />
                             </Link>
                           </Button>
                           {user?.rolle === "Admin" && (
                             <>
-                              <Button asChild variant="ghost" size="icon" className="h-8 w-8">
+                              <Button
+                                asChild
+                                className="bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800"
+                                size="icon"
+                                className="h-8 w-8"
+                              >
                                 <Link href={`/teams/${team.id}/edit`}>
                                   <Pencil className="h-4 w-4" />
                                 </Link>
                               </Button>
                               <Button
-                                variant="ghost"
+                                className="bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                                 size="icon"
-                                className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                                 onClick={() => handleDeleteClick(team)}
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -615,11 +635,15 @@ export default function TeamsPage() {
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)} disabled={isDeleting}>
+            <Button
+              className="border bg-background hover:bg-gray-100 dark:hover:bg-gray-800"
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={isDeleting}
+            >
               Abbrechen
             </Button>
             <Button
-              variant="destructive"
+              className="bg-red-600 hover:bg-red-700 text-white"
               onClick={handleDeleteConfirm}
               disabled={
                 isDeleting ||

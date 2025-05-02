@@ -19,7 +19,7 @@ export function MobileNav() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline">Menü</Button>
+        <Button className="border border-input bg-background hover:bg-accent hover:text-accent-foreground">Menü</Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>

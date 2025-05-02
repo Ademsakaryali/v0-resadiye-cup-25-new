@@ -798,7 +798,7 @@ export default function BlankettDetailPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
       <div className="mb-6">
-        <Button variant="ghost" asChild className="mb-4">
+        <Button className="bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 mb-4" asChild>
           <Link href={`/teams/${team.id}/blankett`}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Zurück zur Blankett-Übersicht
@@ -812,15 +812,15 @@ export default function BlankettDetailPage() {
             </p>
           </div>
           <Badge
-            className={`self-start ${
-              blankett.status === "genehmigt"
-                ? "bg-green-600"
-                : blankett.status === "abgelehnt"
-                  ? "bg-destructive"
-                  : blankett.status === "eingereicht"
-                    ? "bg-secondary"
-                    : "bg-background/50 border"
-            }`}
+            className={
+              blankett.status === "entwurf"
+                ? "border bg-transparent"
+                : blankett.status === "eingereicht"
+                  ? "bg-secondary text-secondary-foreground"
+                  : blankett.status === "genehmigt"
+                    ? "bg-green-600 text-white"
+                    : "bg-red-600 text-white"
+            }
           >
             {blankett.status === "genehmigt" && <CheckCircle className="h-3 w-3 mr-1" />}
             {blankett.status === "abgelehnt" && <AlertCircle className="h-3 w-3 mr-1" />}
@@ -830,7 +830,7 @@ export default function BlankettDetailPage() {
       </div>
 
       {error && (
-        <Alert variant="destructive" className="mb-6">
+        <Alert className="mb-6 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Fehler</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
@@ -838,7 +838,7 @@ export default function BlankettDetailPage() {
       )}
 
       {success && (
-        <Alert variant="default" className="mb-6 border-green-600 text-green-600">
+        <Alert className="mb-6 border-green-600 text-green-600">
           <CheckCircle className="h-4 w-4" />
           <AlertTitle>Erfolg</AlertTitle>
           <AlertDescription>{success}</AlertDescription>
@@ -847,7 +847,7 @@ export default function BlankettDetailPage() {
 
       {/* Admin-Hinweis */}
       {isAdmin && blankett.status !== "entwurf" && (
-        <Alert variant="default" className="mb-6 border-blue-600 text-blue-600 bg-blue-50 dark:bg-blue-900/20">
+        <Alert className="mb-6 border-blue-600 text-blue-600 bg-blue-50 dark:bg-blue-900/20">
           <Shield className="h-4 w-4" />
           <AlertTitle>Administrator-Modus</AlertTitle>
           <AlertDescription>
@@ -857,7 +857,7 @@ export default function BlankettDetailPage() {
       )}
 
       {!isAdmin && blankett.status === "genehmigt" && !isFristAbgelaufen && (
-        <Alert variant="default" className="mb-6 border-green-600 text-green-600 bg-green-50 dark:bg-green-900/20">
+        <Alert className="mb-6 border-green-600 text-green-600 bg-green-50 dark:bg-green-900/20">
           <CheckCircle className="h-4 w-4" />
           <AlertTitle>Genehmigtes Blankett</AlertTitle>
           <AlertDescription>
@@ -952,7 +952,7 @@ export default function BlankettDetailPage() {
           {isEditable && (!isFristAbgelaufen || isAdmin) && (
             <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
               <DialogTrigger asChild>
-                <Button variant="outline" className="bg-background/50">
+                <Button className="border bg-background hover:bg-gray-100 dark:hover:bg-gray-800 bg-background/50">
                   <Plus className="mr-2 h-4 w-4" />
                   Spieler hinzufügen
                 </Button>
@@ -1018,6 +1018,8 @@ export default function BlankettDetailPage() {
                                           "/placeholder.svg" ||
                                           "/placeholder.svg" ||
                                           "/placeholder.svg" ||
+                                          "/placeholder.svg" ||
+                                          "/placeholder.svg" ||
                                           "/placeholder.svg"
                                         }
                                         alt={player.currentTeam.name}
@@ -1030,9 +1032,7 @@ export default function BlankettDetailPage() {
                               </div>
                             </div>
                             <Button
-                              size="sm"
-                              variant="outline"
-                              className="ml-2"
+                              className="border bg-background hover:bg-gray-100 dark:hover:bg-gray-800 ml-2 py-1 px-3 text-sm h-8"
                               onClick={() => handleTransferPlayer(player)}
                               disabled={saving}
                             >
@@ -1105,7 +1105,10 @@ export default function BlankettDetailPage() {
                 </div>
 
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+                  <Button
+                    className="border bg-background hover:bg-gray-100 dark:hover:bg-gray-800"
+                    onClick={() => setShowAddDialog(false)}
+                  >
                     Abbrechen
                   </Button>
                   <Button
@@ -1135,7 +1138,10 @@ export default function BlankettDetailPage() {
                 Fügen Sie Spieler hinzu, um das Blankett zu vervollständigen.
               </p>
               {isEditable && (!isFristAbgelaufen || isAdmin) && (
-                <Button variant="outline" className="mt-4" onClick={() => setShowAddDialog(true)}>
+                <Button
+                  className="border bg-background hover:bg-gray-100 dark:hover:bg-gray-800 mt-4"
+                  onClick={() => setShowAddDialog(true)}
+                >
                   <Plus className="h-4 w-4 mr-2" />
                   Spieler hinzufügen
                 </Button>
@@ -1197,20 +1203,16 @@ export default function BlankettDetailPage() {
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-1">
                             <Button
-                              variant="ghost"
-                              size="icon"
+                              className="bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 h-8 w-8 p-0"
                               onClick={() => handleEditSpieler(spieler)}
                               disabled={saving}
-                              className="h-8 w-8"
                             >
                               <Edit2 className="h-4 w-4 text-blue-600" />
                             </Button>
                             <Button
-                              variant="ghost"
-                              size="icon"
+                              className="bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 h-8 w-8 p-0"
                               onClick={() => handleRemoveSpieler(spieler.spieler_id)}
                               disabled={saving}
-                              className="h-8 w-8"
                             >
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
@@ -1306,7 +1308,10 @@ export default function BlankettDetailPage() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+            <Button
+              className="border bg-background hover:bg-gray-100 dark:hover:bg-gray-800"
+              onClick={() => setShowEditDialog(false)}
+            >
               Abbrechen
             </Button>
             <Button
@@ -1320,7 +1325,7 @@ export default function BlankettDetailPage() {
       </Dialog>
 
       <div className="flex flex-col sm:flex-row gap-3 justify-end mt-8">
-        <Button asChild variant="outline">
+        <Button asChild className="border bg-background hover:bg-gray-100 dark:hover:bg-gray-800">
           <Link href={`/teams/${team.id}/blankett`}>Zurück</Link>
         </Button>
 

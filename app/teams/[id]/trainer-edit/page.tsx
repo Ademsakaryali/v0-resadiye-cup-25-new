@@ -109,7 +109,7 @@ export default function TrainerTeamEditPage() {
   if (!team) {
     return (
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Alert variant="destructive">
+        <Alert className="border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Fehler</AlertTitle>
           <AlertDescription>Das angeforderte Team konnte nicht gefunden werden.</AlertDescription>
@@ -126,7 +126,7 @@ export default function TrainerTeamEditPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-6">
-        <Button variant="ghost" asChild className="mb-4">
+        <Button className="bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 mb-4" asChild>
           <Link href={`/teams/${team.id}`}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Zurück zum Team
@@ -137,7 +137,7 @@ export default function TrainerTeamEditPage() {
       </div>
 
       {error && (
-        <Alert variant="destructive" className="mb-6">
+        <Alert className="mb-6 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Fehler</AlertTitle>
           <AlertDescription>{error}</AlertDescription>

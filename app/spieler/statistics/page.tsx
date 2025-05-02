@@ -340,7 +340,7 @@ export default function PlayerStatisticsPage() {
   if (error) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Alert variant="default" className="dark-card">
+        <Alert className="dark-card">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Fehler</AlertTitle>
           <AlertDescription>{error}</AlertDescription>

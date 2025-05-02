@@ -305,7 +305,7 @@ export default function EditTeamPage({ params }: { params: { id: string } }) {
     <RequireAuth allowedRoles={["Admin"]}>
       <div className="container mx-auto py-6">
         <div className="mb-6">
-          <Button variant="ghost" asChild className="mb-4">
+          <Button className="bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 mb-4" asChild>
             <Link href={`/teams/${params.id}`}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Zurück zum Team
@@ -324,7 +324,7 @@ export default function EditTeamPage({ params }: { params: { id: string } }) {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {error && (
-                    <Alert variant="destructive" className="mb-4">
+                    <Alert className="mb-4 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300">
                       <AlertCircle className="h-4 w-4" />
                       <AlertDescription>{error}</AlertDescription>
                     </Alert>
@@ -428,7 +428,7 @@ export default function EditTeamPage({ params }: { params: { id: string } }) {
                                 </DialogDescription>
                               </DialogHeader>
                               {newTrainerError && (
-                                <Alert variant="destructive" className="mt-4">
+                                <Alert className="mt-4 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300">
                                   <AlertCircle className="h-4 w-4" />
                                   <AlertDescription>{newTrainerError}</AlertDescription>
                                 </Alert>
@@ -489,7 +489,10 @@ export default function EditTeamPage({ params }: { params: { id: string } }) {
                                 </div>
                               </div>
                               <DialogFooter>
-                                <Button type="button" variant="outline" onClick={() => setShowNewTrainerDialog(false)}>
+                                <Button
+                                  className="border bg-background hover:bg-gray-100 dark:hover:bg-gray-800"
+                                  onClick={() => setShowNewTrainerDialog(false)}
+                                >
                                   Abbrechen
                                 </Button>
                                 <Button type="button" onClick={handleCreateTrainer} disabled={isCreatingTrainer}>
@@ -576,7 +579,11 @@ export default function EditTeamPage({ params }: { params: { id: string } }) {
                       </div>
                     </div>
                     <CardFooter className="px-0 pt-6">
-                      <Button variant="outline" type="button" onClick={() => router.back()}>
+                      <Button
+                        className="border bg-background hover:bg-gray-100 dark:hover:bg-gray-800"
+                        type="button"
+                        onClick={() => router.back()}
+                      >
                         Abbrechen
                       </Button>
                       <Button
@@ -614,7 +621,7 @@ export default function EditTeamPage({ params }: { params: { id: string } }) {
               </CardContent>
             </Card>
 
-            <Alert className="mt-6">
+            <Alert className="border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300 mt-6">
               <Info className="h-4 w-4" />
               <AlertTitle>Logo-Aktualisierung</AlertTitle>
               <AlertDescription>

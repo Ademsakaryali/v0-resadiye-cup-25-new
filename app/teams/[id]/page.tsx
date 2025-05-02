@@ -416,7 +416,7 @@ export default function TeamDetailPage() {
   if (!team) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Alert variant="default">
+        <Alert className="bg-gray-50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-800">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Fehler</AlertTitle>
           <AlertDescription>Das angeforderte Team konnte nicht gefunden werden.</AlertDescription>

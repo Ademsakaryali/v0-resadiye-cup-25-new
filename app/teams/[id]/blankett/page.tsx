@@ -216,7 +216,7 @@ export default function TeamBlankettPage() {
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
       <div className="mb-6">
-        <Button variant="ghost" asChild className="mb-4">
+        <Button className="bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 mb-4" asChild>
           <Link href={`/teams/${team.id}`}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Zurück zum Team
@@ -229,7 +229,7 @@ export default function TeamBlankettPage() {
       </div>
 
       {error && (
-        <Alert variant="destructive" className="mb-6">
+        <Alert className="mb-6 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300">
           <AlertTitle>Fehler</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
@@ -284,9 +284,7 @@ export default function TeamBlankettPage() {
                       </span>
                     </div>
                     {getExistingBlankett(selectedTournament) && (
-                      <Badge variant="outline" className="bg-background/50 self-start sm:self-auto">
-                        Blankett vorhanden
-                      </Badge>
+                      <Badge className="border bg-background/50 self-start sm:self-auto">Blankett vorhanden</Badge>
                     )}
                   </div>
 
@@ -318,7 +316,6 @@ export default function TeamBlankettPage() {
         </CardContent>
         <CardFooter className="flex flex-col sm:flex-row gap-2">
           <Button
-            onClick={handleCreateBlankett}
             disabled={!selectedTournament || tournaments.length === 0}
             className="w-full sm:ml-auto sm:w-auto bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-700 hover:to-primary-600"
           >
@@ -356,16 +353,15 @@ export default function TeamBlankettPage() {
                       <p className="font-medium">{tournament?.name || "Unbekanntes Turnier"}</p>
                       <div className="flex flex-wrap items-center gap-2 mt-1">
                         <Badge
-                          variant={
+                          className={
                             blankett.status === "entwurf"
-                              ? "outline"
+                              ? "border bg-transparent"
                               : blankett.status === "eingereicht"
-                                ? "secondary"
+                                ? "bg-secondary text-secondary-foreground"
                                 : blankett.status === "genehmigt"
-                                  ? "default"
-                                  : "destructive"
+                                  ? "bg-green-600 text-white"
+                                  : "bg-red-600 text-white"
                           }
-                          className={blankett.status === "genehmigt" ? "bg-green-600" : ""}
                         >
                           {blankett.status.charAt(0).toUpperCase() + blankett.status.slice(1)}
                         </Badge>
@@ -376,7 +372,10 @@ export default function TeamBlankettPage() {
                         )}
                       </div>
                     </div>
-                    <Button asChild size="sm" variant="secondary" className="self-end sm:self-auto">
+                    <Button
+                      asChild
+                      className="self-end sm:self-auto py-1 px-3 text-sm h-8 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
+                    >
                       <Link href={`/teams/${team.id}/blankett/${blankett.id}`}>Bearbeiten</Link>
                     </Button>
                   </div>
