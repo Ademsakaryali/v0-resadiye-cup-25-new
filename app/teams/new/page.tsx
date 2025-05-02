@@ -603,10 +603,9 @@ export default function NewTeamPage() {
                           <AlertDescription>{trainerLoadError}</AlertDescription>
                         </Alert>
                         <Button
-                          className="border bg-background hover:bg-gray-100 dark:hover:bg-gray-800"
+                          className="border bg-background hover:bg-gray-100 dark:hover:bg-gray-800 mt-2"
                           size="sm"
                           onClick={fetchTrainers}
-                          className="mt-2"
                         >
                           Erneut versuchen
                         </Button>
