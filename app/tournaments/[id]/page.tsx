@@ -498,10 +498,7 @@ export default function TournamentDetailsPage() {
                             <span className="text-xs text-gray-400">{match.ort}</span>
                           </div>
                         )}
-                        <Button
-                          asChild
-                          className="border-gray-700 text-gray-200 hover:bg-gray-800 hover:text-blue-400"
-                        >
+                        <Button asChild className="border-gray-700 text-gray-200 hover:bg-gray-800 hover:text-blue-400">
                           <Link href={`/matches/${match.id}`}>Details</Link>
                         </Button>
                       </div>

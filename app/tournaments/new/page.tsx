@@ -115,7 +115,7 @@ export default function NewTournamentPage() {
     <RequireAuth allowedRoles={["Admin"]}>
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-6">
-          <Button  asChild className="mb-4">
+          <Button asChild className="mb-4">
             <Link href="/tournaments">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Zurück zur Turnierübersicht

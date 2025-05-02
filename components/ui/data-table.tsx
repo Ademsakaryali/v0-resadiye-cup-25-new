@@ -1,110 +1,55 @@
-"use client"
-
-import * as React from "react"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-
-interface Column<T> {
-  accessorKey: string
-  header: string
-  cell?: (info: { row: { original: T } }) => React.ReactNode
-}
+import type React from "react"
 
 interface DataTableProps<T> {
   data: T[]
-  columns: Column<T>[]
-  searchKey?: string
-  placeholder?: string
+  columns: {
+    key: string
+    header: string
+    cell: (item: T) => React.ReactNode
+  }[]
+  keyExtractor: (item: T) => string | number
+  emptyState?: React.ReactNode
 }
 
-export function DataTable<T>({ data, columns, searchKey, placeholder }: DataTableProps<T>) {
-  const [searchValue, setSearchValue] = React.useState("")
-  const [currentPage, setCurrentPage] = React.useState(0)
-  const pageSize = 10
-
-  // Einfache Filterung
-  const filteredData = React.useMemo(() => {
-    if (!searchKey || !searchValue) return data
-    return data.filter((item) => {
-      const value = (item as any)[searchKey]
-      if (typeof value === "string") {
-        return value.toLowerCase().includes(searchValue.toLowerCase())
-      }
-      return false
-    })
-  }, [data, searchKey, searchValue])
-
-  // Einfache Paginierung
-  const paginatedData = React.useMemo(() => {
-    const start = currentPage * pageSize
-    return filteredData.slice(start, start + pageSize)
-  }, [filteredData, currentPage])
-
-  const pageCount = Math.ceil(filteredData.length / pageSize)
-
+export function DataTable<T>({ data, columns, keyExtractor, emptyState }: DataTableProps<T>) {
   return (
-    <div>
-      {searchKey && (
-        <div className="flex items-center py-4">
-          <Input
-            placeholder={placeholder || "Suchen..."}
-            value={searchValue}
-            onChange={(e) => setSearchValue(e.target.value)}
-            className="max-w-sm"
-          />
-        </div>
-      )}
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              {columns.map((column) => (
-                <TableHead key={column.accessorKey}>{column.header}</TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {paginatedData.length > 0 ? (
-              paginatedData.map((row, rowIndex) => (
-                <TableRow key={rowIndex}>
-                  {columns.map((column) => (
-                    <TableCell key={column.accessorKey}>
-                      {column.cell ? column.cell({ row: { original: row } }) : (row as any)[column.accessorKey]}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  Keine Ergebnisse.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-      {pageCount > 1 && (
-        <div className="flex items-center justify-end space-x-2 py-4">
-          <Button
-            appearance="outline"
-            buttonSize="sm"
-            onClick={() => setCurrentPage((prev) => Math.max(0, prev - 1))}
-            disabled={currentPage === 0}
-          >
-            Zurück
-          </Button>
-          <Button
-            appearance="outline"
-            buttonSize="sm"
-            onClick={() => setCurrentPage((prev) => Math.min(pageCount - 1, prev + 1))}
-            disabled={currentPage === pageCount - 1}
-          >
-            Weiter
-          </Button>
-        </div>
-      )}
+    <div className="overflow-x-auto">
+      <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+        <thead>
+          <tr>
+            {columns.map((column) => (
+              <th
+                key={column.key}
+                className="px-6 py-3 bg-gray-50 dark:bg-gray-800 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+              >
+                {column.header}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {data.length === 0 ? (
+            <tr>
+              <td colSpan={columns.length} className="px-6 py-4 whitespace-nowrap text-center">
+                {emptyState || "Keine Daten vorhanden"}
+              </td>
+            </tr>
+          ) : (
+            data.map((item) => (
+              <tr
+                key={keyExtractor(item)}
+                className="bg-white dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                {columns.map((column) => (
+                  <td key={`${keyExtractor(item)}-${column.key}`} className="px-6 py-4 whitespace-nowrap">
+                    {column.cell(item)}
+                  </td>
+                ))}
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
     </div>
   )
 }
